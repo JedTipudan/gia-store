@@ -54,7 +54,7 @@ class _CustomerHistoryState extends State<CustomerHistory>
       .toList();
 
   List get _completedOrders => _orders
-      .where((o) => o['status'] == 'CONFIRMED' ||
+      .where((o) => o['status'] == 'CONFIRMED' || o['status'] == 'COMPLETED' ||
           o['status'] == 'DECLINED' || o['status'] == 'CANCELLED')
       .toList();
 
@@ -162,6 +162,7 @@ class _CustomerHistoryState extends State<CustomerHistory>
       'PAID': Colors.blue[300]!,
       'SUBMITTED': Colors.blue[300]!,
       'CONFIRMED': const Color(0xFF4ade80),
+      'COMPLETED': Colors.teal,
       'DECLINED': Colors.red,
       'CANCELLED': Colors.red,
     };
@@ -170,6 +171,7 @@ class _CustomerHistoryState extends State<CustomerHistory>
       'PAID': '💳 Payment Submitted',
       'SUBMITTED': '💳 Payment Submitted',
       'CONFIRMED': '✓ Confirmed',
+      'COMPLETED': '🍽️ Served',
       'DECLINED': '✗ Declined',
       'CANCELLED': '✗ Cancelled',
     };

@@ -80,6 +80,14 @@ public class FoodOrderController {
         return ResponseEntity.ok(orderRepo.save(order));
     }
 
+    @PatchMapping("/{id}/serve")
+    public ResponseEntity<?> markServed(@PathVariable Long id) {
+        FoodOrder order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setStatus("COMPLETED");
+        return ResponseEntity.ok(orderRepo.save(order));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         orderRepo.deleteById(id);

@@ -1,13 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import '../../services/api_service.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/dialogs.dart';
+import '../payment_page.dart';
 
 class CustomerPaluwagan extends StatefulWidget {
   final String userId;
@@ -84,12 +81,11 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
     final paidCount = payments.where((p) => p['paid'] == true).length;
     final total = payments.length;
     final progress = total > 0 ? paidCount / total : 0.0;
-
-    // Find next unpaid payment
     final nextUnpaid = payments.where((p) =>
         p['paid'] == false && p['approvalStatus'] == 'PENDING').toList();
     final submittedPayments = payments.where((p) =>
         p['approvalStatus'] == 'SUBMITTED').toList();
+    final months = pkg['durationMonths'] ?? pkg['durationWeeks'] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -98,7 +94,6 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _statusColor(status).withOpacity(0.3))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
         // Header
         Container(
           padding: const EdgeInsets.all(16),
@@ -113,13 +108,13 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
               Row(children: [
                 Icon(Icons.payments_outlined, size: 13, color: _statusColor(status)),
                 const SizedBox(width: 4),
-                Text('${formatPeso(pkg['weeklyAmount'])}/week',
+                Text('${formatPeso(pkg['weeklyAmount'])}/month',
                     style: GoogleFonts.outfit(fontSize: 12,
                         color: _statusColor(status), fontWeight: FontWeight.w600)),
                 const SizedBox(width: 12),
-                Icon(Icons.calendar_today, size: 13, color: Colors.grey[500]),
+                Icon(Icons.calendar_month_rounded, size: 13, color: Colors.grey[500]),
                 const SizedBox(width: 4),
-                Text('${pkg['durationWeeks']} weeks',
+                Text('$months months',
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400])),
               ]),
             ])),
@@ -137,44 +132,20 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
         Padding(padding: const EdgeInsets.all(16), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // PENDING state
           if (status == 'PENDING')
-            Container(padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Row(children: [
-                const Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Your application is being reviewed by the admin.',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange))),
-              ])),
+            _infoBox(Icons.hourglass_empty_rounded, Colors.orange,
+                'Your application is being reviewed by the admin.'),
 
-          // REJECTED state
           if (status == 'REJECTED')
-            Container(padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Application rejected', style: GoogleFonts.outfit(
-                      fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
-                ]),
-                if ((m['adminNote'] ?? '').toString().isNotEmpty)
-                  Padding(padding: const EdgeInsets.only(top: 4),
-                    child: Text('Reason: ${m['adminNote']}',
-                        style: GoogleFonts.outfit(
-                            fontSize: 12, color: Colors.red.withOpacity(0.8)))),
-              ])),
+            _infoBox(Icons.cancel_outlined, Colors.red,
+                'Application rejected${(m['adminNote'] ?? '').toString().isNotEmpty ? ': ${m['adminNote']}' : ''}'),
 
-          // ACTIVE state
           if (status == 'ACTIVE') ...[
-            // Payment tracker
+            // Progress tracker
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Payment Progress', style: GoogleFonts.outfit(
                   fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[400])),
-              Text('$paidCount / $total paid', style: GoogleFonts.outfit(
+              Text('$paidCount / $total', style: GoogleFonts.outfit(
                   fontSize: 13, fontWeight: FontWeight.bold, color: _primary)),
             ]),
             const SizedBox(height: 8),
@@ -198,25 +169,25 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.orange.withOpacity(0.2))),
                 child: Row(children: [
-                  const Icon(Icons.hourglass_empty_rounded,
-                      color: Colors.orange, size: 16),
+                  const Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 16),
                   const SizedBox(width: 8),
                   Text('${submittedPayments.length} payment${submittedPayments.length > 1 ? 's' : ''} waiting for admin approval',
                       style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange)),
                 ])),
 
-            // Next payment due — PAY NOW button
+            // Next payment — PAY NOW
             if (nextUnpaid.isNotEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                     color: _primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: _primary.withOpacity(0.25))),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(nextUnpaid.first['periodLabel'] ?? 'Week ${nextUnpaid.first['periodNumber']}',
+                      Text(nextUnpaid.first['periodLabel'] ??
+                          'Month ${nextUnpaid.first['periodNumber']}',
                           style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
                               color: Colors.white, fontSize: 14)),
                       Text('Due: ${formatDate(nextUnpaid.first['dueDate'])}',
@@ -224,29 +195,28 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
                     ]),
                     Text(formatPeso(nextUnpaid.first['amount']),
                         style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
-                            color: _primary, fontSize: 20)),
+                            color: _primary, fontSize: 22)),
                   ]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   SizedBox(width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _showPaymentSheet(nextUnpaid.first),
-                      icon: const Icon(Icons.payment_rounded, size: 18),
-                      label: Text('Pay Now',
-                          style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold, fontSize: 15)),
+                      onPressed: () => _openPayment(nextUnpaid.first),
+                      icon: const Icon(Icons.payment_rounded, size: 20),
+                      label: Text('Pay Now', style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                       style: ElevatedButton.styleFrom(
                           backgroundColor: _primary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
+                              borderRadius: BorderRadius.circular(12))),
                     )),
                 ])),
               const SizedBox(height: 16),
             ],
 
-            // All payments list
-            Text('All Payments', style: GoogleFonts.outfit(
+            // All payments
+            Text('Payment Schedule', style: GoogleFonts.outfit(
                 fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[400])),
             const SizedBox(height: 8),
             ...payments.map((p) => _paymentRow(p)),
@@ -255,6 +225,16 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
       ]),
     );
   }
+
+  Widget _infoBox(IconData icon, Color color, String msg) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10)),
+    child: Row(children: [
+      Icon(icon, color: color, size: 18),
+      const SizedBox(width: 8),
+      Expanded(child: Text(msg, style: GoogleFonts.outfit(fontSize: 12, color: color))),
+    ]));
 
   Widget _paymentRow(Map p) {
     final isPaid = p['paid'] == true;
@@ -266,26 +246,26 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
     if (isPaid) {
       color = _primary; icon = Icons.check_circle_rounded; label = 'Paid';
     } else if (status == 'SUBMITTED') {
-      color = Colors.orange; icon = Icons.hourglass_empty_rounded; label = 'Submitted';
+      color = Colors.orange; icon = Icons.hourglass_empty_rounded; label = 'Pending';
     } else if (status == 'REJECTED') {
       color = Colors.red; icon = Icons.cancel_rounded; label = 'Rejected';
     } else {
-      color = Colors.grey; icon = Icons.radio_button_unchecked; label = 'Unpaid';
+      color = Colors.grey[600]!; icon = Icons.radio_button_unchecked; label = 'Unpaid';
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(isPaid ? 0.2 : 0.1))),
+        border: Border.all(color: color.withOpacity(0.15))),
       child: Row(children: [
-        Icon(icon, color: color, size: 18),
+        Icon(icon, color: color, size: 16),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(p['periodLabel'] ?? 'Week ${p['periodNumber']}',
-              style: GoogleFonts.outfit(fontSize: 13,
+          Text(p['periodLabel'] ?? 'Month ${p['periodNumber']}',
+              style: GoogleFonts.outfit(fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: isPaid ? Colors.white : Colors.grey[400])),
           Text('Due: ${formatDate(p['dueDate'])}',
@@ -293,7 +273,7 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(formatPeso(p['amount']), style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+              fontWeight: FontWeight.bold, color: color, fontSize: 12)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(color: color.withOpacity(0.12),
@@ -305,23 +285,20 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
     );
   }
 
-  void _showPaymentSheet(Map payment) async {
-    List methods = [];
-    final methodRes = await ApiService.get('/paluwagan/payment-methods/active');
-    if (methodRes.statusCode == 200) methods = jsonDecode(methodRes.body);
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context, isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A2E1E),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _PaymentSheet(
-        payment: payment, methods: methods,
-        onSubmitted: () {
+  void _openPayment(Map payment) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => PaymentPage(
+        title: payment['periodLabel'] ?? 'Month ${payment['periodNumber']}',
+        subtitle: 'Paluwagan Monthly Payment',
+        amount: formatPeso(payment['amount']),
+        paymentId: payment['id'].toString(),
+        paymentType: 'paluwagan',
+        onSuccess: () {
           _load();
           if (mounted) showSnack(context, '✓ Payment submitted! Waiting for admin approval.');
-        }),
-    );
+        },
+      ),
+    ));
   }
 
   Color _statusColor(String s) {
@@ -332,296 +309,5 @@ class _CustomerPaluwaganState extends State<CustomerPaluwagan> {
       case 'COMPLETED': return Colors.blue[300]!;
       default: return Colors.grey;
     }
-  }
-}
-
-// ─── Payment Sheet ────────────────────────────────────────────────────────────
-
-class _PaymentSheet extends StatefulWidget {
-  final Map payment;
-  final List methods;
-  final VoidCallback onSubmitted;
-  const _PaymentSheet({required this.payment, required this.methods,
-      required this.onSubmitted});
-  @override
-  State<_PaymentSheet> createState() => _PaymentSheetState();
-}
-
-class _PaymentSheetState extends State<_PaymentSheet> {
-  String? _selectedMethod;
-  Map? _selectedMethodData;
-  final _refCtrl = TextEditingController();
-  File? _proofImage;
-  String _uploadedUrl = '';
-  bool _uploading = false;
-  bool _submitting = false;
-
-  bool get _isCash =>
-      _selectedMethodData?['icon'] == 'cash' ||
-      (_selectedMethod?.toLowerCase().contains('cash') ?? false);
-  bool get _needsProof => !_isCash;
-
-  Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context, backgroundColor: const Color(0xFF1A2E1E),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(height: 16),
-        ListTile(
-          leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF4ade80)),
-          title: Text('Choose from Gallery', style: GoogleFonts.outfit(color: Colors.white)),
-          onTap: () => Navigator.pop(context, ImageSource.gallery)),
-        ListTile(
-          leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF4ade80)),
-          title: Text('Take a Photo', style: GoogleFonts.outfit(color: Colors.white)),
-          onTap: () => Navigator.pop(context, ImageSource.camera)),
-        const SizedBox(height: 8),
-      ])));
-    if (source == null) return;
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, imageQuality: 75, maxWidth: 800);
-    if (picked == null) return;
-    setState(() { _proofImage = File(picked.path); _uploading = true; });
-    try {
-      final token = await ApiService.getToken();
-      final request = http.MultipartRequest('POST',
-          Uri.parse('https://gia-store-production.up.railway.app/api/upload/image'));
-      request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(await http.MultipartFile.fromPath('file', picked.path,
-          contentType: MediaType('image', 'jpeg')));
-      final response = await request.send();
-      final body = await response.stream.bytesToString();
-      if (response.statusCode == 200) {
-        setState(() { _uploadedUrl = jsonDecode(body)['url']; _uploading = false; });
-      } else {
-        setState(() => _uploading = false);
-        if (mounted) showSnack(context, 'Upload failed', error: true);
-      }
-    } catch (_) { setState(() => _uploading = false); }
-  }
-
-  Future<void> _submit() async {
-    if (_selectedMethod == null) {
-      showSnack(context, 'Please select a payment method', error: true); return;
-    }
-    if (_needsProof && _uploadedUrl.isEmpty) {
-      showSnack(context, 'Please upload your payment receipt photo', error: true); return;
-    }
-    setState(() => _submitting = true);
-    final res = await ApiService.patch2(
-        '/paluwagan/payments/${widget.payment['id']}/submit-proof', {
-      'proofImageUrl': _needsProof ? _uploadedUrl : '',
-      'paymentMethod': _selectedMethod,
-      'referenceNumber': _needsProof ? _refCtrl.text.trim() : '',
-    });
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    if (res.statusCode == 200) {
-      Navigator.pop(context);
-      widget.onSubmitted();
-    } else {
-      showSnack(context, 'Failed to submit. Try again.', error: true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20, right: 20, top: 20),
-      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Center(child: Container(width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(2)))),
-        const SizedBox(height: 16),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Submit Payment', style: GoogleFonts.outfit(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            Text('${widget.payment['periodLabel'] ?? 'Week ${widget.payment['periodNumber']}'} — ${formatPeso(widget.payment['amount'])}',
-                style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13)),
-          ]),
-          IconButton(icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.pop(context)),
-        ]),
-        const SizedBox(height: 20),
-
-        // Method selector
-        Align(alignment: Alignment.centerLeft,
-          child: Text('Select Payment Method', style: GoogleFonts.outfit(
-              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[400]))),
-        const SizedBox(height: 10),
-        ...widget.methods.map((m) {
-          final selected = _selectedMethod == m['name'];
-          return GestureDetector(
-            onTap: () => setState(() {
-              _selectedMethod = m['name'];
-              _selectedMethodData = m;
-              _proofImage = null;
-              _uploadedUrl = '';
-              _refCtrl.clear();
-            }),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFF16a34a).withOpacity(0.15)
-                    : const Color(0xFF0F2414),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: selected ? const Color(0xFF16a34a) : Colors.grey[800]!,
-                    width: selected ? 2 : 1)),
-              child: Row(children: [
-                Container(width: 40, height: 40,
-                  decoration: BoxDecoration(
-                      color: selected
-                          ? const Color(0xFF16a34a).withOpacity(0.2)
-                          : Colors.grey[800],
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(
-                    m['icon'] == 'gcash' ? Icons.phone_android_rounded
-                        : m['icon'] == 'bank' ? Icons.account_balance_rounded
-                        : Icons.payments_rounded,
-                    color: selected ? const Color(0xFF4ade80) : Colors.grey[400],
-                    size: 20)),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(m['name'] ?? '', style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      color: selected ? Colors.white : Colors.grey[300])),
-                  if ((m['accountNumber'] ?? '').toString().isNotEmpty &&
-                      m['accountNumber'] != 'N/A')
-                    Text(m['accountNumber'], style: GoogleFonts.outfit(
-                        fontSize: 13, color: const Color(0xFF4ade80),
-                        fontWeight: FontWeight.w600)),
-                  if ((m['accountName'] ?? '').toString().isNotEmpty)
-                    Text(m['accountName'], style: GoogleFonts.outfit(
-                        fontSize: 12, color: Colors.grey[500])),
-                ])),
-                if (selected)
-                  const Icon(Icons.check_circle_rounded,
-                      color: Color(0xFF4ade80), size: 20),
-              ]),
-            ),
-          );
-        }),
-
-        // Instructions
-        if (_selectedMethodData != null &&
-            (_selectedMethodData!['instructions'] ?? '').toString().isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.withOpacity(0.2))),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.info_outline, color: Colors.blue, size: 16),
-              const SizedBox(width: 8),
-              Expanded(child: Text(_selectedMethodData!['instructions'],
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.blue[300]))),
-            ])),
-
-        // Online: ref + photo
-        if (_selectedMethod != null && _needsProof) ...[
-          TextField(
-            controller: _refCtrl,
-            style: GoogleFonts.outfit(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: 'Reference / Transaction Number',
-              labelStyle: GoogleFonts.outfit(color: Colors.grey[500]),
-              filled: true, fillColor: const Color(0xFF0F2414),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF4ade80), width: 2)))),
-          const SizedBox(height: 14),
-          Align(alignment: Alignment.centerLeft,
-            child: Text('Upload Payment Receipt *', style: GoogleFonts.outfit(
-                fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[400]))),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: _uploading ? null : _pickImage,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: double.infinity, height: 150,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F2414),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: _uploadedUrl.isNotEmpty
-                        ? const Color(0xFF4ade80) : Colors.grey[700]!,
-                    width: _uploadedUrl.isNotEmpty ? 2 : 1)),
-              clipBehavior: Clip.antiAlias,
-              child: _uploading
-                  ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const CircularProgressIndicator(color: Color(0xFF4ade80)),
-                      const SizedBox(height: 10),
-                      Text('Uploading...', style: GoogleFonts.outfit(color: Colors.grey)),
-                    ])
-                  : _proofImage != null
-                      ? Stack(fit: StackFit.expand, children: [
-                          Image.file(_proofImage!, fit: BoxFit.cover),
-                          if (_uploadedUrl.isNotEmpty)
-                            Positioned(top: 8, right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(color: const Color(0xFF16a34a),
-                                    borderRadius: BorderRadius.circular(9999)),
-                                child: Text('✓ Uploaded', style: GoogleFonts.outfit(
-                                    fontSize: 10, color: Colors.white,
-                                    fontWeight: FontWeight.w600)))),
-                        ])
-                      : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.upload_file_rounded,
-                              size: 40, color: Color(0xFF4ade80)),
-                          const SizedBox(height: 8),
-                          Text('Tap to upload receipt photo',
-                              style: GoogleFonts.outfit(color: Colors.grey[400])),
-                          Text('Gallery or Camera',
-                              style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[600])),
-                        ])),
-          ),
-          const SizedBox(height: 20),
-        ],
-
-        // Cash note
-        if (_selectedMethod != null && _isCash)
-          Container(
-            margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF16a34a).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF16a34a).withOpacity(0.2))),
-            child: Row(children: [
-              const Icon(Icons.payments_rounded, color: Color(0xFF4ade80), size: 20),
-              const SizedBox(width: 10),
-              Expanded(child: Text(
-                'Pay cash directly to the store owner. Tap Submit to confirm.',
-                style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey[300]))),
-            ])),
-
-        if (_selectedMethod != null)
-          SizedBox(width: double.infinity, height: 50,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF16a34a),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14))),
-              child: _submitting
-                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                  : Text('Submit Payment', style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold, fontSize: 15)))),
-        const SizedBox(height: 24),
-      ])),
-    );
   }
 }
