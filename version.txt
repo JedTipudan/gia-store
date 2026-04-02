@@ -1,4 +1,4 @@
-version=1.4.0
+version=1.5.0
 download=https://github.com/JedTipudan/gia-store/releases/latest
 - Fixed approve member error
 - 1 paluwagan per customer rule
