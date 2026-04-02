@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../services/theme_service.dart';
+import '../services/update_service.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'food_screen.dart';
@@ -39,6 +41,35 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     AuthService.getUsername().then((u) => setState(() => _username = u));
+    _checkUpdate();
+  }
+
+  Future<void> _checkUpdate() async {
+    final info = await PackageInfo.fromPlatform();
+    final update = await UpdateService.checkForUpdate(info.version);
+    if (!mounted || update == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Update Available v${update.version}',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text(
+          update.releaseNotes.isNotEmpty ? update.releaseNotes : 'A new version is available.',
+          style: GoogleFonts.outfit(fontSize: 14)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: Text('Later', style: GoogleFonts.outfit(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () => UpdateService.openDownload(update.downloadUrl),
+            child: Text('Download Update',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
   }
 
   void _logout() async {
