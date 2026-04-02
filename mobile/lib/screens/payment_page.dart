@@ -52,7 +52,7 @@ class _PaymentPageState extends State<PaymentPage>
 
   bool get _isCash =>
       _selectedMethodData?['icon'] == 'cash' ||
-      (_selectedMethod?.toLowerCase().contains('cash') ?? false);
+      (_selectedMethod?.toLowerCase() == 'cash' ?? false);
   bool get _needsProof => _selectedMethod != null && !_isCash;
 
   @override
