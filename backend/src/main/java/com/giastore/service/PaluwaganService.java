@@ -33,9 +33,9 @@ public class PaluwaganService {
         PaluwaganPackage pkg = packageRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found"));
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
-        pkg.setWeeklyAmount(updated.getWeeklyAmount()); pkg.setDurationWeeks(updated.getDurationWeeks());
+        pkg.setWeeklyAmount(updated.getWeeklyAmount());
+        pkg.setDurationMonths(updated.getDurationMonths());
         pkg.setMaxSlots(updated.getMaxSlots()); pkg.setImageUrl(updated.getImageUrl());
-        pkg.setPaymentType(updated.getPaymentType());
         pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
     }
@@ -118,18 +118,25 @@ public class PaluwaganService {
 
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();
-        boolean isMonthly = "MONTHLY".equals(pkg.getPaymentType());
+        // Philippine Paluwagan: 1 payment per month, due on first week of each month
+        int totalMonths = pkg.getDurationMonths();
         List<Payment> payments = new ArrayList<>();
-        for (int i = 1; i <= pkg.getDurationWeeks(); i++) {
+        LocalDate startDate = member.getStartDate();
+
+        for (int i = 1; i <= totalMonths; i++) {
+            // Due on the 1st of each month starting from start month
+            LocalDate dueDate = startDate.withDayOfMonth(1).plusMonths(i - 1);
+
             Payment p = new Payment();
             p.setMember(member);
             p.setPeriodNumber(i);
             p.setWeekNumber(i);
-            p.setPeriodLabel((isMonthly ? "Month " : "Week ") + i);
+            p.setPeriodLabel("Month " + i + " (" +
+                dueDate.getMonth().getDisplayName(
+                    java.time.format.TextStyle.SHORT,
+                    java.util.Locale.ENGLISH) + " " + dueDate.getYear() + ")");
             p.setAmount(pkg.getWeeklyAmount());
-            p.setDueDate(isMonthly
-                ? member.getStartDate().plusMonths(i - 1)
-                : member.getStartDate().plusWeeks(i - 1));
+            p.setDueDate(dueDate);
             p.setPaid(false);
             p.setApprovalStatus("PENDING");
             payments.add(p);

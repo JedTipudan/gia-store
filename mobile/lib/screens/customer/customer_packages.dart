@@ -49,7 +49,6 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     } catch (_) { setState(() => _loading = false); }
   }
 
-  // Check if customer already has any active or pending enrollment
   bool get _hasActiveEnrollment => _myApplications.any(
       (m) => m['status'] == 'ACTIVE' || m['status'] == 'PENDING');
 
@@ -61,8 +60,10 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     return app.first['status'] ?? 'NONE';
   }
 
+  int _getMonths(Map pkg) =>
+      pkg['durationMonths'] ?? pkg['durationWeeks'] ?? 0;
+
   void _apply(Map pkg) async {
-    // 1 paluwagan per customer rule
     if (_hasActiveEnrollment) {
       showSnack(context,
           'You already have an active or pending paluwagan enrollment.',
@@ -73,6 +74,7 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     final enrolled = _enrolledCounts[pkg['id'] as int] ?? 0;
     final maxSlots = pkg['maxSlots'] ?? 10;
     final slotsLeft = maxSlots - enrolled;
+    final months = _getMonths(pkg);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -86,10 +88,10 @@ class _CustomerPackagesState extends State<CustomerPackages> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _dialogRow('Weekly payment', formatPeso(pkg['weeklyAmount'])),
-            _dialogRow('Duration', '${pkg['durationWeeks']} weeks'),
+            _dialogRow('Monthly payment', formatPeso(pkg['weeklyAmount'])),
+            _dialogRow('Duration', '$months months'),
             _dialogRow('Total value',
-                formatPeso((pkg['weeklyAmount'] ?? 0) * (pkg['durationWeeks'] ?? 0))),
+                formatPeso((pkg['weeklyAmount'] ?? 0) * months)),
             _dialogRow('Slots left', '$slotsLeft of $maxSlots'),
             const SizedBox(height: 10),
             Container(
@@ -98,7 +100,7 @@ class _CustomerPackagesState extends State<CustomerPackages> {
                   color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8)),
               child: Text(
-                  'Your application will be reviewed by the admin before activation.',
+                  'Pay once per month on the 1st. Admin will review your application first.',
                   style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange))),
           ],
         ),
@@ -163,7 +165,6 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(padding: const EdgeInsets.all(16), children: [
-        // My applications
         if (_myApplications.isNotEmpty) ...[
           Text('My Application', style: GoogleFonts.outfit(
               fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[400])),
@@ -171,8 +172,6 @@ class _CustomerPackagesState extends State<CustomerPackages> {
           ..._myApplications.map((m) => _applicationCard(m)),
           const SizedBox(height: 16),
         ],
-
-        // If already enrolled/pending — show message instead of packages
         if (_hasActiveEnrollment) ...[
           Container(
             padding: const EdgeInsets.all(16),
@@ -191,14 +190,12 @@ class _CustomerPackagesState extends State<CustomerPackages> {
                     'Go to My Paluwagan tab to view your payments.',
                     style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400])),
               ])),
-            ]),
-          ),
+            ])),
         ] else ...[
-          // Show available packages
           Text('Available Packages', style: GoogleFonts.outfit(
               fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 4),
-          Text('Apply to join a paluwagan group',
+          Text('Pay once per month — due on the 1st of each month',
               style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey[400])),
           const SizedBox(height: 12),
           if (_packages.isEmpty)
@@ -246,7 +243,8 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     final maxSlots = pkg['maxSlots'] ?? 10;
     final slotsLeft = maxSlots - enrolled;
     final isFull = slotsLeft <= 0;
-    final total = (pkg['weeklyAmount'] ?? 0) * (pkg['durationWeeks'] ?? 0);
+    final months = _getMonths(pkg);
+    final total = (pkg['weeklyAmount'] ?? 0) * months;
     final canApply = !isFull && !_hasActiveEnrollment &&
         (status == 'NONE' || status == 'REJECTED');
 
@@ -254,7 +252,6 @@ class _CustomerPackagesState extends State<CustomerPackages> {
       margin: const EdgeInsets.only(bottom: 14),
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Package image
         if ((pkg['imageUrl'] ?? '').toString().isNotEmpty)
           FoodImage(imageUrl: pkg['imageUrl'], height: 140, width: double.infinity,
               placeholder: _pkgPlaceholder())
@@ -276,15 +273,12 @@ class _CustomerPackagesState extends State<CustomerPackages> {
                     fontSize: 12, color: Colors.grey[400]))),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 6, children: [
-              _chip('${formatPeso(pkg['weeklyAmount'])}/${pkg['paymentType'] == 'MONTHLY' ? 'month' : 'week'}',
+              _chip('${formatPeso(pkg['weeklyAmount'])}/month',
                   Icons.payments_outlined, const Color(0xFF4ade80)),
-              _chip(pkg['paymentType'] == 'MONTHLY' ? 'Monthly' : 'Weekly',
-                  pkg['paymentType'] == 'MONTHLY'
-                      ? Icons.calendar_month_rounded
-                      : Icons.calendar_view_week_rounded,
-                  Colors.blue[300]!),
-              _chip('${pkg['durationWeeks']} periods',
-                  Icons.format_list_numbered_rounded, Colors.orange),
+              _chip('$months months',
+                  Icons.calendar_month_rounded, Colors.blue[300]!),
+              _chip('$enrolled/$maxSlots enrolled',
+                  Icons.people_outline, Colors.orange),
             ]),
             const SizedBox(height: 10),
             Text(formatPeso(total), style: GoogleFonts.outfit(

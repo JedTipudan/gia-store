@@ -18,16 +18,13 @@ public class PaluwaganPackage {
     private String description;
 
     @Column(nullable = false)
-    private BigDecimal weeklyAmount;
+    private BigDecimal weeklyAmount; // amount paid each week
 
     @Column(nullable = false)
-    private Integer durationWeeks;
+    private Integer durationMonths; // how many months the paluwagan runs
 
     @Column(nullable = false)
     private Integer maxSlots = 10;
-
-    @Column(nullable = false)
-    private String paymentType = "WEEKLY"; // WEEKLY or MONTHLY
 
     private String imageUrl;
 
