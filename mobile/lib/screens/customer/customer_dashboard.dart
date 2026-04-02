@@ -70,7 +70,7 @@ class _CustomerDashboardState extends State<CustomerDashboard>
         .fold(0.0, (sum, p) => sum + ((p['amount'] ?? 0) as num).toDouble());
     final progress = totalPayments > 0 ? paidPayments / totalPayments : 0.0;
     final pendingOrders = _orders.where((o) =>
-        o['status'] == 'PENDING' || o['status'] == 'PAID').length;
+        o['status'] == 'PENDING' || o['status'] == 'SUBMITTED').length;
     final confirmedOrders = _orders.where((o) => o['status'] == 'CONFIRMED').length;
     final totalPending = pendingOrders + submittedPayments;
 

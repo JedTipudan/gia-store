@@ -65,7 +65,8 @@ public class FoodOrderController {
         order.setPaymentMethod(body.get("paymentMethod"));
         order.setReferenceNumber(body.get("referenceNumber"));
         order.setProofImageUrl(body.get("proofImageUrl"));
-        order.setStatus("PAID");
+        // Always set to SUBMITTED — admin must approve
+        order.setStatus("SUBMITTED");
         order.setPaidAt(LocalDateTime.now());
         return ResponseEntity.ok(orderRepo.save(order));
     }

@@ -45,7 +45,7 @@ class _CustomerHistoryState extends State<CustomerHistory>
 
   // Pending = food orders not yet CONFIRMED + paluwagan payments not yet APPROVED
   List get _pendingOrders => _orders
-      .where((o) => o['status'] == 'PENDING' || o['status'] == 'PAID')
+      .where((o) => o['status'] == 'PENDING' || o['status'] == 'SUBMITTED')
       .toList();
 
   List get _pendingPayments => _allPayments
@@ -53,7 +53,8 @@ class _CustomerHistoryState extends State<CustomerHistory>
       .toList();
 
   List get _completedOrders => _orders
-      .where((o) => o['status'] == 'CONFIRMED' || o['status'] == 'CANCELLED')
+      .where((o) => o['status'] == 'CONFIRMED' ||
+          o['status'] == 'DECLINED' || o['status'] == 'CANCELLED')
       .toList();
 
   List get _paidPayments => _allPayments.where((p) => p['paid'] == true).toList();
@@ -158,13 +159,17 @@ class _CustomerHistoryState extends State<CustomerHistory>
     final Map<String, Color> statusColors = {
       'PENDING': Colors.orange,
       'PAID': Colors.blue[300]!,
+      'SUBMITTED': Colors.blue[300]!,
       'CONFIRMED': const Color(0xFF4ade80),
+      'DECLINED': Colors.red,
       'CANCELLED': Colors.red,
     };
     final Map<String, String> statusLabels = {
       'PENDING': '⏳ Pending',
       'PAID': '💳 Payment Submitted',
+      'SUBMITTED': '💳 Payment Submitted',
       'CONFIRMED': '✓ Confirmed',
+      'DECLINED': '✗ Declined',
       'CANCELLED': '✗ Cancelled',
     };
     final color = statusColors[status] ?? Colors.grey;
