@@ -102,9 +102,10 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     }
 
     final res = await ApiService.post('/paluwagan/members/apply', {
-      'fullName': fullName, 'phone': phone,
+      'fullName': fullName,
+      'phone': phone,
+      'userId': int.parse(_userId),
       'paluwaganPackage': {'id': pkg['id']},
-      'user': {'id': int.parse(_userId)},
     });
 
     if (!mounted) return;

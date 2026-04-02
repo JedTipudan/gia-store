@@ -28,10 +28,16 @@ public class FoodOrder {
     private BigDecimal totalPrice;
 
     @Column(nullable = false)
-    private String status = "PENDING"; // PENDING, CONFIRMED, CANCELLED
+    private String status = "PENDING"; // PENDING, PAID, CONFIRMED, CANCELLED
 
     @Column(nullable = false)
     private LocalDateTime orderedAt = LocalDateTime.now();
 
     private String note;
+
+    // Payment proof
+    private String paymentMethod;
+    private String referenceNumber;
+    private String proofImageUrl;
+    private LocalDateTime paidAt;
 }
