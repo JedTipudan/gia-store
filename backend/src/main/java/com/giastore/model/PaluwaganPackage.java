@@ -18,10 +18,11 @@ public class PaluwaganPackage {
     private String description;
 
     @Column(nullable = false)
-    private BigDecimal weeklyAmount; // amount paid each week
+    private BigDecimal weeklyAmount; // monthly payment amount
 
-    @Column(nullable = false)
-    private Integer durationMonths; // how many months the paluwagan runs
+    // Stored as duration_weeks in DB but represents months
+    @Column(name = "duration_weeks", nullable = false)
+    private Integer durationWeeks;
 
     @Column(nullable = false)
     private Integer maxSlots = 10;
@@ -30,4 +31,15 @@ public class PaluwaganPackage {
 
     @Column(nullable = false)
     private Boolean active = true;
+
+    // Helper: treat durationWeeks as months
+    @Transient
+    public Integer getDurationMonths() {
+        return durationWeeks;
+    }
+
+    @Transient
+    public void setDurationMonths(Integer months) {
+        this.durationWeeks = months;
+    }
 }

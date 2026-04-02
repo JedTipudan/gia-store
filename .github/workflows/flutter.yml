@@ -38,7 +38,6 @@ jobs:
           BUILD=${{ github.run_number }}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "build=$BUILD" >> $GITHUB_OUTPUT
-          echo "full_version=$VERSION+$BUILD" >> $GITHUB_OUTPUT
           echo "App version: $VERSION+$BUILD"
 
       - name: Update pubspec version with build number
@@ -48,9 +47,17 @@ jobs:
       - name: Sync version.txt with current version
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          # Only update version line, keep rest of version.txt
           sed -i "s/^version=.*/version=$VERSION/" version.txt
           echo "Synced version.txt to $VERSION"
+          cat version.txt
+
+      - name: Commit version.txt back to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt mobile/pubspec.yaml
+          git diff --staged --quiet || git commit -m "ci: sync version.txt to ${{ steps.get_version.outputs.version }}"
+          git push
 
       - name: Get dependencies
         run: flutter pub get
@@ -79,9 +86,9 @@ jobs:
           generate_release_notes: true
           body: |
             ## Gia Foodies v${{ steps.get_version.outputs.version }}
-            
+
             Download the APK below and install on your Android phone.
-            
+
             **How to install:**
             1. Download `app-release.apk`
             2. Open the file on your phone

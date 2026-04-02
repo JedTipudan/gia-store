@@ -47,7 +47,7 @@ public class ReceiptService {
         addRow(table, "Phone:", payment.getMember().getPhone() != null ? payment.getMember().getPhone() : "N/A");
         addRow(table, "Package:", payment.getMember().getPaluwaganPackage().getName());
         addRow(table, "Period:", (payment.getPeriodLabel() != null ? payment.getPeriodLabel() : "Month " + payment.getPeriodNumber()) + " of " +
-                payment.getMember().getPaluwaganPackage().getDurationMonths() + " months");
+                payment.getMember().getPaluwaganPackage().getDurationWeeks() + " months");
         addRow(table, "Due Date:", payment.getDueDate() != null ? payment.getDueDate().toString() : "N/A");
         addRow(table, "Paid On:", payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A");
 

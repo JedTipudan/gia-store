@@ -34,7 +34,7 @@ public class PaluwaganService {
                 .orElseThrow(() -> new RuntimeException("Package not found"));
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
         pkg.setWeeklyAmount(updated.getWeeklyAmount());
-        pkg.setDurationMonths(updated.getDurationMonths());
+        pkg.setDurationWeeks(updated.getDurationWeeks());
         pkg.setMaxSlots(updated.getMaxSlots()); pkg.setImageUrl(updated.getImageUrl());
         pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
@@ -118,15 +118,13 @@ public class PaluwaganService {
 
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();
-        // Philippine Paluwagan: 1 payment per month, due on first week of each month
-        int totalMonths = pkg.getDurationMonths();
+        // durationWeeks column stores number of months
+        int totalMonths = pkg.getDurationWeeks();
         List<Payment> payments = new ArrayList<>();
         LocalDate startDate = member.getStartDate();
 
         for (int i = 1; i <= totalMonths; i++) {
-            // Due on the 1st of each month starting from start month
             LocalDate dueDate = startDate.withDayOfMonth(1).plusMonths(i - 1);
-
             Payment p = new Payment();
             p.setMember(member);
             p.setPeriodNumber(i);
