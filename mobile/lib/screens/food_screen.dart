@@ -8,6 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import '../services/api_service.dart';
 import '../utils/formatters.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/food_image.dart';
 
 class FoodScreen extends StatefulWidget {
   const FoodScreen({super.key});
@@ -77,11 +78,6 @@ class _FoodScreenState extends State<FoodScreen> {
                       itemBuilder: (_, i) {
                         final item = _items[i];
                         final isActive = item['active'] ?? true;
-                        final imageUrl = (item['imageUrl'] ?? '').toString();
-                        final hasImage = imageUrl.isNotEmpty;
-                        final fullImageUrl = hasImage && imageUrl.startsWith('/api')
-                            ? 'https://gia-store-production.up.railway.app$imageUrl'
-                            : imageUrl;
 
                         return Card(
                           clipBehavior: Clip.antiAlias,
@@ -89,12 +85,11 @@ class _FoodScreenState extends State<FoodScreen> {
                             Stack(children: [
                               Container(height: 120, width: double.infinity,
                                 color: isActive ? const Color(0xFFDCFCE7) : Colors.grey[100],
-                                child: hasImage
-                                    ? Image.network(fullImageUrl, fit: BoxFit.cover,
-                                        loadingBuilder: (_, child, progress) => progress == null ? child
-                                            : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                        errorBuilder: (_, __, ___) => _placeholder(isActive))
-                                    : _placeholder(isActive)),
+                                child: FoodImage(
+                                  imageUrl: item['imageUrl'],
+                                  height: 120, width: double.infinity,
+                                  placeholder: _foodIcon(isActive),
+                                )),
                               Positioned(top: 8, right: 8,
                                 child: GestureDetector(
                                   onTap: () => _toggleAvailability(item),
@@ -265,10 +260,6 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fullImageUrl = _imageUrl.isNotEmpty && _imageUrl.startsWith('/api')
-        ? 'https://gia-store-production.up.railway.app$_imageUrl'
-        : _imageUrl;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.item != null ? 'Edit Food Item' : 'Add Food Item',
@@ -304,8 +295,7 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
                   : _pickedImage != null
                       ? Image.file(_pickedImage!, fit: BoxFit.cover)
                       : _imageUrl.isNotEmpty
-                          ? Image.network(fullImageUrl, fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _imgPlaceholder())
+                          ? FoodImage(imageUrl: _imageUrl, height: 200, width: double.infinity)
                           : _imgPlaceholder(),
             ),
           ),

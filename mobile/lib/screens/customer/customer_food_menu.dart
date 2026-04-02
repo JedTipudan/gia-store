@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import '../../utils/formatters.dart';
+import '../../utils/image_utils.dart';
 import '../../widgets/dialogs.dart';
+import '../../widgets/food_image.dart';
 
 class CustomerFoodMenu extends StatefulWidget {
   const CustomerFoodMenu({super.key});
@@ -128,9 +130,6 @@ class _CustomerFoodMenuState extends State<CustomerFoodMenu> {
             final item = _filtered[i];
             final imageUrl = (item['imageUrl'] ?? '').toString();
             final hasImage = imageUrl.isNotEmpty;
-            final fullUrl = hasImage && imageUrl.startsWith('/api')
-                ? 'https://gia-store-production.up.railway.app$imageUrl'
-                : imageUrl;
 
             return Container(
               decoration: BoxDecoration(
@@ -142,12 +141,8 @@ class _CustomerFoodMenuState extends State<CustomerFoodMenu> {
                 Container(height: 120, width: double.infinity,
                   color: const Color(0xFF0F2414),
                   child: hasImage
-                      ? Image.network(fullUrl, fit: BoxFit.cover,
-                          loadingBuilder: (_, child, progress) =>
-                              progress == null ? child : const Center(
-                                  child: CircularProgressIndicator(
-                                      color: Color(0xFF4ade80), strokeWidth: 2)),
-                          errorBuilder: (_, __, ___) => _placeholder())
+                      ? FoodImage(imageUrl: item['imageUrl'],
+                          height: 120, width: double.infinity)
                       : _placeholder()),
                 // Info
                 Expanded(child: Padding(
