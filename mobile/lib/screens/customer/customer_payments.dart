@@ -11,7 +11,8 @@ import '../../widgets/dialogs.dart';
 
 class CustomerPayments extends StatefulWidget {
   final String userId;
-  const CustomerPayments({super.key, required this.userId});
+  final int? memberId;
+  const CustomerPayments({super.key, required this.userId, this.memberId});
   @override
   State<CustomerPayments> createState() => _CustomerPaymentsState();
 }
@@ -27,7 +28,10 @@ class _CustomerPaymentsState extends State<CustomerPayments> {
     if (widget.userId.isEmpty) return;
     setState(() => _loading = true);
     try {
-      final res = await ApiService.get('/paluwagan/payments/user/${widget.userId}');
+      final path = widget.memberId != null
+          ? '/paluwagan/payments/member/${widget.memberId}'
+          : '/paluwagan/payments/user/${widget.userId}';
+      final res = await ApiService.get(path);
       if (res.statusCode == 200) setState(() { _payments = jsonDecode(res.body); _loading = false; });
     } catch (_) { setState(() => _loading = false); }
   }

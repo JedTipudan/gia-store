@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
 import '../login_screen.dart';
+import 'customer_dashboard.dart';
 import 'customer_food_menu.dart';
 import 'customer_packages.dart';
-import 'customer_payments.dart';
-import 'customer_profile.dart';
+import 'customer_paluwagan.dart';
+import 'customer_history.dart';
 
 class CustomerHome extends StatefulWidget {
   const CustomerHome({super.key});
@@ -18,7 +19,7 @@ class _CustomerHomeState extends State<CustomerHome> {
   String _username = '';
   String _userId = '';
 
-  final _titles = ['Today\'s Menu', 'Paluwagan', 'My Payments', 'Profile'];
+  final _titles = ['Dashboard', 'Food Menu', 'Packages', 'My Paluwagan', 'History'];
 
   @override
   void initState() {
@@ -28,10 +29,11 @@ class _CustomerHomeState extends State<CustomerHome> {
   }
 
   List<Widget> get _screens => [
+    CustomerDashboard(userId: _userId, username: _username),
     const CustomerFoodMenu(),
     const CustomerPackages(),
-    CustomerPayments(userId: _userId),
-    CustomerProfile(username: _username),
+    CustomerPaluwagan(userId: _userId),
+    CustomerHistory(userId: _userId),
   ];
 
   void _logout() async {
@@ -75,11 +77,10 @@ class _CustomerHomeState extends State<CustomerHome> {
                     fontSize: 12, color: Colors.white.withOpacity(0.7))),
                 const SizedBox(height: 8),
                 Row(children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white.withOpacity(0.2), radius: 12,
+                  CircleAvatar(backgroundColor: Colors.white.withOpacity(0.2), radius: 12,
                     child: Text(_username.isNotEmpty ? _username[0].toUpperCase() : 'U',
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.white,
-                            fontWeight: FontWeight.bold))),
+                        style: GoogleFonts.outfit(fontSize: 12,
+                            color: Colors.white, fontWeight: FontWeight.bold))),
                   const SizedBox(width: 8),
                   Text(_username, style: GoogleFonts.outfit(fontSize: 13, color: Colors.white)),
                 ]),
@@ -87,10 +88,11 @@ class _CustomerHomeState extends State<CustomerHome> {
             ),
             const SizedBox(height: 8),
             Expanded(child: ListView(padding: const EdgeInsets.symmetric(horizontal: 8), children: [
-              _navItem(0, Icons.restaurant_menu_outlined, Icons.restaurant_menu_rounded, 'Today\'s Menu'),
-              _navItem(1, Icons.inventory_2_outlined, Icons.inventory_2_rounded, 'Paluwagan'),
-              _navItem(2, Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'My Payments'),
-              _navItem(3, Icons.person_outline, Icons.person_rounded, 'Profile'),
+              _navItem(0, Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
+              _navItem(1, Icons.restaurant_menu_outlined, Icons.restaurant_menu_rounded, 'Food Menu'),
+              _navItem(2, Icons.inventory_2_outlined, Icons.inventory_2_rounded, 'Packages'),
+              _navItem(3, Icons.groups_outlined, Icons.groups_rounded, 'My Paluwagan'),
+              _navItem(4, Icons.history_rounded, Icons.history_rounded, 'History'),
             ])),
             Padding(padding: const EdgeInsets.all(12),
               child: ListTile(
@@ -136,8 +138,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     textTheme: GoogleFonts.outfitTextTheme(
         ThemeData(brightness: Brightness.dark).textTheme),
     scaffoldBackgroundColor: const Color(0xFF0A1A0E),
-    appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0F2414),
+    appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF0F2414),
         foregroundColor: Colors.white, elevation: 0,
         surfaceTintColor: Colors.transparent),
     cardTheme: CardThemeData(elevation: 0, color: const Color(0xFF1A2E1E),

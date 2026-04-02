@@ -12,7 +12,7 @@ public class FoodItemService {
 
     private final FoodItemRepository repo;
 
-    public List<FoodItem> getAll() { return repo.findAll(); }
+    public List<FoodItem> getAll() { return repo.findByActiveTrue(); }
     public List<FoodItem> getTodaysMenu() { return repo.findByActiveTrueAndAvailableTodayTrue(); }
 
     public FoodItem getById(Long id) {
@@ -40,9 +40,8 @@ public class FoodItemService {
         return repo.save(item);
     }
 
+    // Hard delete — actually removes from DB
     public void delete(Long id) {
-        FoodItem item = getById(id);
-        item.setActive(false);
-        repo.save(item);
+        repo.deleteById(id);
     }
 }

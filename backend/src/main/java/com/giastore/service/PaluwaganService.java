@@ -39,9 +39,13 @@ public class PaluwaganService {
     }
 
     public void deletePackage(Long id) {
-        PaluwaganPackage pkg = packageRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Package not found"));
-        pkg.setActive(false); packageRepo.save(pkg);
+        // Hard delete — remove from DB
+        // First check if any active members exist
+        long activeMembers = memberRepo.findByPaluwaganPackageId(id).stream()
+                .filter(m -> m.getStatus().equals("ACTIVE")).count();
+        if (activeMembers > 0)
+            throw new RuntimeException("Cannot delete: " + activeMembers + " active member(s) enrolled");
+        packageRepo.deleteById(id);
     }
 
     // --- Members ---
@@ -97,7 +101,11 @@ public class PaluwaganService {
         return memberRepo.save(existing);
     }
 
-    public void deleteMember(Long id) { memberRepo.deleteById(id); }
+    public void deleteMember(Long id) {
+        // Delete payments first, then member
+        paymentRepo.deleteAll(paymentRepo.findByMemberId(id));
+        memberRepo.deleteById(id);
+    }
 
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();

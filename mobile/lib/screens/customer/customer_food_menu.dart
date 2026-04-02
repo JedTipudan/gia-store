@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/dialogs.dart';
 
 class CustomerFoodMenu extends StatefulWidget {
   const CustomerFoodMenu({super.key});
@@ -14,9 +16,24 @@ class _CustomerFoodMenuState extends State<CustomerFoodMenu> {
   List _items = [];
   bool _loading = true;
   String _selectedCategory = 'All';
+  String _userId = '';
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final id = await _getStoredUserId();
+    setState(() => _userId = id);
+  }
+
+  Future<String> _getStoredUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId') ?? '';
+  }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -153,14 +170,16 @@ class _CustomerFoodMenuState extends State<CustomerFoodMenu> {
                       Text(formatPeso(item['price']), style: GoogleFonts.outfit(
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF4ade80), fontSize: 15)),
-                      if (item['stock'] != null && item['stock'] > 0)
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      GestureDetector(
+                        onTap: () => _orderItem(item),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                              color: const Color(0xFF16a34a).withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6)),
-                          child: Text('${item['stock']} left', style: GoogleFonts.outfit(
-                              fontSize: 9, color: const Color(0xFF4ade80),
-                              fontWeight: FontWeight.w600))),
+                            color: const Color(0xFF16a34a),
+                            borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.add_shopping_cart_rounded,
+                              size: 16, color: Colors.white)),
+                      ),
                     ]),
                   ]),
                 )),
@@ -174,4 +193,38 @@ class _CustomerFoodMenuState extends State<CustomerFoodMenu> {
 
   Widget _placeholder() => Center(child: Icon(Icons.fastfood_rounded,
       size: 44, color: Colors.grey[700]));
+
+  Future<void> _orderItem(Map item) async {
+    if (_userId.isEmpty) { showSnack(context, 'Please login again', error: true); return; }
+    final confirmed = await showDialog<bool>(context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A2E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Order ${item['name']}', style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold, color: Colors.white)),
+        content: Text('Add this to your order?\n${formatPeso(item['price'])}',
+            style: GoogleFonts.outfit(color: Colors.grey[300])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey))),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: Text('Order', style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
+        ],
+      )) ?? false;
+    if (!confirmed) return;
+    final res = await ApiService.post('/orders', {
+      'userId': int.parse(_userId),
+      'foodItemId': item['id'],
+      'quantity': 1,
+    });
+    if (!mounted) return;
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      showSnack(context, 'Order placed! Check History tab.');
+    } else {
+      showSnack(context, 'Failed to place order', error: true);
+    }
+  }
 }
