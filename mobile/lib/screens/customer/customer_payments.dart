@@ -281,9 +281,10 @@ class _PaymentProofFormState extends State<_PaymentProofForm> {
             onTap: () => setState(() {
               _selectedMethod = m['name'];
               _selectedMethodData = m;
-              // Reset proof when switching methods
+              // Reset all proof fields when switching methods
               _proofImage = null;
               _uploadedUrl = '';
+              _refCtrl.clear();
             }),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

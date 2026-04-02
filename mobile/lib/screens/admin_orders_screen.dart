@@ -53,31 +53,17 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
     final res = await ApiService.patch2('/orders/${order['id']}/status',
         {'status': 'CONFIRMED'});
     if (!mounted) return;
-    if (res.statusCode == 200) {
-      showSnack(context, '✓ Order approved!');
-      _load();
-    } else {
-      showSnack(context, 'Failed to approve', error: true);
-    }
+    if (res.statusCode == 200) { showSnack(context, '✓ Order approved!'); _load(); }
+    else showSnack(context, 'Failed to approve', error: true);
   }
 
   Future<void> _decline(Map order) async {
-    final noteCtrl = TextEditingController();
     final ok = await showDialog<bool>(context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Decline Order', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Decline payment from ${order['user']?['fullName'] ?? order['user']?['username']}?',
-              style: GoogleFonts.outfit()),
-          const SizedBox(height: 12),
-          TextField(controller: noteCtrl,
-              decoration: InputDecoration(
-                labelText: 'Reason (shown to customer)',
-                labelStyle: GoogleFonts.outfit(),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-              style: GoogleFonts.outfit()),
-        ]),
+        content: Text('Decline order from ${order['user']?['fullName'] ?? order['user']?['username']}?',
+            style: GoogleFonts.outfit()),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
               child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey))),
@@ -102,7 +88,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
         color: Theme.of(context).appBarTheme.backgroundColor,
         child: TabBar(
           controller: _tab,
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 12),
+          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 11),
           indicatorColor: const Color(0xFF16a34a),
           labelColor: const Color(0xFF16a34a),
           unselectedLabelColor: Colors.grey,
@@ -127,12 +113,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
       Row(mainAxisSize: MainAxisSize.min, children: [
         Text(label),
         if (count > 0) ...[
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(9999)),
             child: Text('$count', style: const TextStyle(
-                fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
+                fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))),
         ],
       ]);
 
@@ -151,7 +137,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         itemCount: orders.length,
         itemBuilder: (_, i) => _orderCard(orders[i], type: type),
       ),
@@ -161,18 +147,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
   Widget _orderCard(Map o, {required String type}) {
     final status = o['status'] ?? 'PENDING';
     final Map<String, Color> colors = {
-      'PENDING': Colors.orange,
-      'SUBMITTED': Colors.blue,
+      'PENDING': Colors.orange, 'SUBMITTED': Colors.blue,
       'CONFIRMED': const Color(0xFF16a34a),
-      'DECLINED': Colors.red,
-      'CANCELLED': Colors.grey,
-    };
-    final Map<String, String> labels = {
-      'PENDING': '⏳ Waiting for payment',
-      'SUBMITTED': '💳 Payment submitted',
-      'CONFIRMED': '✓ Approved',
-      'DECLINED': '✗ Declined',
-      'CANCELLED': 'Cancelled',
+      'DECLINED': Colors.red, 'CANCELLED': Colors.grey,
     };
     final color = colors[status] ?? Colors.grey;
     final proofUrl = (o['proofImageUrl'] ?? '').toString();
@@ -180,151 +157,102 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
         ? 'https://gia-store-production.up.railway.app$proofUrl' : proofUrl;
     final isCash = (o['paymentMethod'] ?? '').toString().toLowerCase().contains('cash');
 
-    return Card(margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(padding: const EdgeInsets.all(14),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-          // Food + customer info
+          // Compact header
           Row(children: [
-            FoodImage(imageUrl: o['foodItem']?['imageUrl'],
-                height: 52, width: 52,
-                placeholder: Container(width: 52, height: 52,
-                    decoration: BoxDecoration(color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.fastfood_rounded, color: Colors.grey))),
-            const SizedBox(width: 12),
+            ClipRRect(borderRadius: BorderRadius.circular(8),
+              child: FoodImage(imageUrl: o['foodItem']?['imageUrl'],
+                  height: 44, width: 44,
+                  placeholder: Container(width: 44, height: 44,
+                      color: Colors.grey[100],
+                      child: const Icon(Icons.fastfood_rounded,
+                          color: Colors.grey, size: 20)))),
+            const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(o['foodItem']?['name'] ?? '',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text('${o['user']?['fullName'] ?? o['user']?['username'] ?? 'Unknown'}',
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
-              Text('Qty: ${o['quantity']} • ${formatDate(o['orderedAt'])}',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text('${o['user']?['fullName'] ?? o['user']?['username'] ?? ''}',
                   style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(formatPeso(o['totalPrice']), style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF16a34a), fontSize: 15)),
-              const SizedBox(height: 4),
+                  fontWeight: FontWeight.bold, color: const Color(0xFF16a34a), fontSize: 14)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(9999)),
-                child: Text(labels[status] ?? status, style: GoogleFonts.outfit(
-                    fontSize: 10, fontWeight: FontWeight.w600, color: color))),
+                child: Text(status, style: GoogleFonts.outfit(
+                    fontSize: 9, fontWeight: FontWeight.w600, color: color))),
             ]),
           ]),
 
-          // Payment info
+          // Payment method
           if ((o['paymentMethod'] ?? '').toString().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.blue.withOpacity(0.15))),
-              child: Row(children: [
-                Icon(isCash ? Icons.payments_rounded : Icons.phone_android_rounded,
-                    size: 16, color: Colors.blue[300]),
+            const SizedBox(height: 8),
+            Row(children: [
+              Icon(isCash ? Icons.payments_rounded : Icons.phone_android_rounded,
+                  size: 13, color: Colors.blue),
+              const SizedBox(width: 4),
+              Text(o['paymentMethod'], style: GoogleFonts.outfit(
+                  fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w600)),
+              if ((o['referenceNumber'] ?? '').toString().isNotEmpty) ...[
                 const SizedBox(width: 8),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Payment: ${o['paymentMethod']}',
-                      style: GoogleFonts.outfit(fontSize: 13,
-                          fontWeight: FontWeight.w600, color: Colors.blue[300])),
-                  if ((o['referenceNumber'] ?? '').toString().isNotEmpty)
-                    Text('Ref: ${o['referenceNumber']}',
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
-                ])),
-              ])),
+                Text('• Ref: ${o['referenceNumber']}',
+                    style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey)),
+              ],
+            ]),
           ],
 
-          // Proof image (only for non-cash)
+          // Proof (compact)
           if (!isCash && proofUrl.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Payment Receipt:', style: GoogleFonts.outfit(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
-              Text('Tap to enlarge', style: GoogleFonts.outfit(
-                  fontSize: 10, color: Colors.grey)),
-            ]),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: () => showDialog(context: context,
-                  builder: (_) => Dialog(
-                      child: InteractiveViewer(
-                          child: Image.network(fullProofUrl)))),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                  builder: (_) => Dialog(child: InteractiveViewer(
+                      child: Image.network(fullProofUrl)))),
+              child: ClipRRect(borderRadius: BorderRadius.circular(8),
                 child: Image.network(fullProofUrl,
-                    height: 180, width: double.infinity, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(height: 60,
+                    height: 100, width: double.infinity, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(height: 40,
                         color: Colors.grey[100],
-                        child: const Center(child: Icon(Icons.broken_image,
-                            color: Colors.grey))))),
+                        child: const Center(child: Text('Image error',
+                            style: TextStyle(fontSize: 10, color: Colors.grey))))))),
             ),
+            Text('Tap to enlarge', style: GoogleFonts.outfit(
+                fontSize: 9, color: Colors.grey)),
           ],
 
-          // Cash note
-          if (isCash && type == 'submitted') ...[
+          // Actions
+          if (type == 'submitted' || type == 'pending') ...[
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Row(children: [
-                const Icon(Icons.info_outline, color: Colors.orange, size: 16),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Customer will pay cash in person.',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange))),
-              ])),
-          ],
-
-          // Approve / Decline buttons for SUBMITTED orders
-          if (type == 'submitted') ...[
-            const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: OutlinedButton.icon(
+              Expanded(child: OutlinedButton(
                 onPressed: () => _decline(o),
-                icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                label: Text('Decline', style: GoogleFonts.outfit(
-                    color: Colors.red, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: ElevatedButton.icon(
-                onPressed: () => _approve(o),
-                icon: const Icon(Icons.check, size: 16),
-                label: Text('Approve', style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16a34a),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
-              )),
-            ]),
-          ],
-
-          // Pending note
-          if (type == 'pending') ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Row(children: [
-                const Icon(Icons.hourglass_empty_rounded,
-                    color: Colors.orange, size: 16),
+                        borderRadius: BorderRadius.circular(8))),
+                child: Text('Decline', style: GoogleFonts.outfit(
+                    color: Colors.red, fontWeight: FontWeight.w600, fontSize: 12)))),
+              if (type == 'submitted') ...[
                 const SizedBox(width: 8),
-                Expanded(child: Text('Waiting for customer to submit payment.',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange))),
-              ])),
+                Expanded(child: ElevatedButton(
+                  onPressed: () => _approve(o),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16a34a),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8))),
+                  child: Text('Approve', style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w600, fontSize: 12)))),
+              ],
+            ]),
           ],
         ])));
   }

@@ -412,6 +412,10 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                 onTap: () => setState(() {
                   _selectedMethod = m['name'];
                   _selectedMethodData = m;
+                  // Reset all proof fields when switching methods
+                  _proofImage = null;
+                  _uploadedUrl = '';
+                  _refCtrl.clear();
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),

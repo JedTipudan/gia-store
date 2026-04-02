@@ -11,6 +11,7 @@ import 'food_screen.dart';
 import 'packages_screen.dart';
 import 'admin_paluwagan_screen.dart';
 import 'admin_orders_screen.dart';
+import 'admin_approvals.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,15 +29,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   final _screens = const [
     DashboardScreen(), FoodScreen(), PackagesScreen(),
-    AdminPaluwaganScreen(), AdminOrdersScreen(),
+    AdminPaluwaganScreen(), AdminOrdersScreen(), AdminApprovalsScreen(),
   ];
-  final _titles = ['Dashboard', 'Food Items', 'Packages', 'Paluwagan', 'Orders'];
+  final _titles = ['Dashboard', 'Food Items', 'Packages', 'Paluwagan', 'Orders', 'Approvals'];
   final _navItems = [
     {'icon': Icons.dashboard_outlined, 'sel': Icons.dashboard_rounded, 'label': 'Dashboard', 'color': Color(0xFF16a34a)},
     {'icon': Icons.fastfood_outlined, 'sel': Icons.fastfood_rounded, 'label': 'Food Items', 'color': Color(0xFFf97316)},
     {'icon': Icons.inventory_2_outlined, 'sel': Icons.inventory_2_rounded, 'label': 'Packages', 'color': Color(0xFF8b5cf6)},
     {'icon': Icons.groups_outlined, 'sel': Icons.groups_rounded, 'label': 'Paluwagan', 'color': Color(0xFF0ea5e9)},
     {'icon': Icons.receipt_long_outlined, 'sel': Icons.receipt_long_rounded, 'label': 'Orders', 'color': Color(0xFFf43f5e)},
+    {'icon': Icons.how_to_reg_outlined, 'sel': Icons.how_to_reg_rounded, 'label': 'Approvals', 'color': Color(0xFFf97316)},
   ];
 
   @override

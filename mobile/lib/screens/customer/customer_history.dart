@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/dialogs.dart';
 import '../../widgets/food_image.dart';
 
 class CustomerHistory extends StatefulWidget {
@@ -222,14 +223,31 @@ class _CustomerHistoryState extends State<CustomerHistory>
               ],
             ])),
         ],
-        if (status == 'PENDING')
-          Padding(padding: const EdgeInsets.only(top: 8),
-            child: Text('Waiting for admin to confirm your order',
-                style: GoogleFonts.outfit(fontSize: 11, color: Colors.orange.withOpacity(0.8)))),
-        if (status == 'PAID')
-          Padding(padding: const EdgeInsets.only(top: 8),
-            child: Text('Payment submitted — waiting for admin approval',
+        if (status == 'PENDING') ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: OutlinedButton(
+              onPressed: () => _cancelOrder(o),
+              style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8))),
+              child: Text('Cancel Order', style: GoogleFonts.outfit(
+                  color: Colors.red, fontWeight: FontWeight.w600, fontSize: 12)))),
+          ]),
+        ],
+        if (status == 'SUBMITTED')
+          Padding(padding: const EdgeInsets.only(top: 6),
+            child: Text('💳 Payment submitted — waiting for admin review',
                 style: GoogleFonts.outfit(fontSize: 11, color: Colors.blue[300]))),
+        if (status == 'DECLINED')
+          Padding(padding: const EdgeInsets.only(top: 6),
+            child: Container(padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Text('✗ Order declined by admin',
+                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.red)))),
       ])));
   }
 
@@ -283,6 +301,39 @@ class _CustomerHistoryState extends State<CustomerHistory>
               child: Text('Rejected: ${p['adminNote']}',
                   style: GoogleFonts.outfit(fontSize: 11, color: Colors.red)))),
       ])));
+  }
+
+  Future<void> _cancelOrder(Map order) async {
+    final ok = await showDialog<bool>(context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A2E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Cancel Order', style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold, color: Colors.white)),
+        content: Text('Cancel your order for ${order['foodItem']?['name']}?',
+            style: GoogleFonts.outfit(color: Colors.grey[300])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: Text('No', style: GoogleFonts.outfit(color: Colors.grey))),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10))),
+              child: Text('Yes, Cancel', style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w600))),
+        ],
+      )) ?? false;
+    if (!ok || !mounted) return;
+    final res = await ApiService.patch2('/orders/${order['id']}/status',
+        {'status': 'CANCELLED'});
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      showSnack(context, 'Order cancelled');
+      _load();
+    } else {
+      showSnack(context, 'Failed to cancel', error: true);
+    }
   }
 
   Widget _sectionHeader(String title, IconData icon, Color color) =>
