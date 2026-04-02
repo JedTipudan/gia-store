@@ -1,4 +1,4 @@
-version=1.0.3
+version=1.0.4
 download=https://github.com/JedTipudan/gia-store/releases/latest
 - Renamed to Gia Foodies
 - Professional redesign with animations
