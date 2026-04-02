@@ -40,6 +40,11 @@ class ApiService {
     return http.patch(Uri.parse('$baseUrl$path'), headers: await _headers());
   }
 
+  static Future<http.Response> patch2(String path, Map body) async {
+    return http.patch(Uri.parse('$baseUrl$path'),
+        headers: await _headers(), body: jsonEncode(body));
+  }
+
   static Future<http.Response> getBytes(String path) async {
     return http.get(Uri.parse('$baseUrl$path'), headers: await _headers());
   }

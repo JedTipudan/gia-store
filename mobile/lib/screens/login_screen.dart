@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../widgets/dialogs.dart';
 import 'home_screen.dart';
+import 'customer/customer_home.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _regUser = TextEditingController();
   final _regPass = TextEditingController();
   final _regConfirm = TextEditingController();
+  final _regName = TextEditingController();
+  final _regPhone = TextEditingController();
   bool _loading = false;
   bool _obscure1 = true, _obscure2 = true, _obscure3 = true;
 
@@ -28,30 +31,39 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _login() async {
     if (_loginUser.text.isEmpty || _loginPass.text.isEmpty) return;
     setState(() => _loading = true);
-    final ok = await AuthService.login(_loginUser.text.trim(), _loginPass.text.trim());
+    final result = await AuthService.login(_loginUser.text.trim(), _loginPass.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
-    if (ok) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+    if (result != null) {
+      final role = result['role'] ?? 'CUSTOMER';
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (_) => role == 'ADMIN' ? const HomeScreen() : const CustomerHome()));
     } else {
       showSnack(context, 'Invalid username or password', error: true);
     }
   }
 
   Future<void> _register() async {
-    if (_regUser.text.isEmpty || _regPass.text.isEmpty) return;
+    if (_regUser.text.isEmpty || _regPass.text.isEmpty || _regName.text.isEmpty) {
+      showSnack(context, 'Please fill in all required fields', error: true); return;
+    }
     if (_regPass.text != _regConfirm.text) {
       showSnack(context, 'Passwords do not match', error: true); return;
     }
+    if (_regPass.text.length < 6) {
+      showSnack(context, 'Password must be at least 6 characters', error: true); return;
+    }
     setState(() => _loading = true);
-    final ok = await AuthService.register(_regUser.text.trim(), _regPass.text.trim());
+    final ok = await AuthService.register(
+        _regUser.text.trim(), _regPass.text.trim(),
+        _regName.text.trim(), _regPhone.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
       showSnack(context, 'Account created! Please login.');
       _tab.animateTo(0);
     } else {
-      showSnack(context, 'Registration failed. Username may already exist.', error: true);
+      showSnack(context, 'Username already exists. Try another.', error: true);
     }
   }
 
@@ -94,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     tabs: const [Tab(text: 'Login'), Tab(text: 'Register')],
                   ),
                   SizedBox(
-                    height: 280,
+                    height: _tab.index == 0 ? 220 : 380,
                     child: TabBarView(controller: _tab, children: [
                       _loginForm(),
                       _registerForm(),
@@ -117,26 +129,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _passField(_loginPass, 'Password', _obscure1, () => setState(() => _obscure1 = !_obscure1)),
       const SizedBox(height: 20),
       _submitBtn('Sign In', _login),
-      const SizedBox(height: 8),
-      Text('Default: admin / admin123', style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
     ]),
   );
 
   Widget _registerForm() => Padding(
     padding: const EdgeInsets.all(20),
     child: Column(children: [
-      _field(_regUser, 'Username', Icons.person_outline),
+      _field(_regName, 'Full Name *', Icons.badge_outlined),
       const SizedBox(height: 10),
-      _passField(_regPass, 'Password', _obscure2, () => setState(() => _obscure2 = !_obscure2)),
+      _field(_regPhone, 'Phone Number', Icons.phone_outlined, type: TextInputType.phone),
       const SizedBox(height: 10),
-      _passField(_regConfirm, 'Confirm Password', _obscure3, () => setState(() => _obscure3 = !_obscure3)),
+      _field(_regUser, 'Username *', Icons.person_outline),
+      const SizedBox(height: 10),
+      _passField(_regPass, 'Password *', _obscure2, () => setState(() => _obscure2 = !_obscure2)),
+      const SizedBox(height: 10),
+      _passField(_regConfirm, 'Confirm Password *', _obscure3, () => setState(() => _obscure3 = !_obscure3)),
       const SizedBox(height: 16),
       _submitBtn('Create Account', _register),
     ]),
   );
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon) =>
-      TextField(controller: ctrl,
+  Widget _field(TextEditingController ctrl, String label, IconData icon,
+      {TextInputType type = TextInputType.text}) =>
+      TextField(controller: ctrl, keyboardType: type,
           decoration: InputDecoration(labelText: label, labelStyle: GoogleFonts.outfit(),
               prefixIcon: Icon(icon, color: const Color(0xFF16a34a), size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -155,11 +170,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          style: GoogleFonts.outfit(),
-          onSubmitted: (_) => label == 'Password' ? _login() : null);
+          style: GoogleFonts.outfit());
 
   Widget _submitBtn(String label, VoidCallback onTap) => SizedBox(
-    width: double.infinity, height: 44,
+    width: double.infinity, height: 46,
     child: ElevatedButton(
       onPressed: _loading ? null : onTap,
       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),

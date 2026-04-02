@@ -30,4 +30,12 @@ public class Payment {
     private LocalDate dueDate;
     private LocalDateTime paidAt;
     private String receiptNumber;
+
+    // Customer payment proof
+    private String proofImageUrl;
+    private String paymentMethod; // CASH, GCASH, etc.
+    private String referenceNumber;
+    private String approvalStatus = "PENDING"; // PENDING, APPROVED, REJECTED
+    private LocalDateTime submittedAt;
+    private String adminNote;
 }

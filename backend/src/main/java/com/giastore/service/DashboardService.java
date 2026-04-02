@@ -22,7 +22,9 @@ public class DashboardService {
                 packageRepo.count(),
                 paymentRepo.sumPaidPayments(),
                 paymentRepo.countUnpaidPayments(),
-                paymentRepo.count()
+                paymentRepo.count(),
+                (long) memberRepo.findByStatus("PENDING").size(),
+                paymentRepo.countPendingApprovals()
         );
     }
 }

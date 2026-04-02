@@ -10,6 +10,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -20,20 +22,24 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public String login(String username, String password) {
+    public Map<String, String> login(String username, String password) {
         authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-        UserDetails user = userDetailsService.loadUserByUsername(username);
-        return jwtUtil.generateToken(user.getUsername());
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String token = jwtUtil.generateToken(username);
+        return Map.of("token", token, "username", username, "role", user.getRole(),
+                "userId", String.valueOf(user.getId()));
     }
 
-    public void register(String username, String password) {
-        if (userRepository.findByUsername(username).isPresent()) {
+    public void register(String username, String password, String fullName, String phone) {
+        if (userRepository.findByUsername(username).isPresent())
             throw new RuntimeException("Username already exists");
-        }
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole("ADMIN");
+        user.setRole("CUSTOMER");
+        user.setFullName(fullName);
+        user.setPhone(phone);
         userRepository.save(user);
     }
 
@@ -51,5 +57,19 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setUsername(newUsername);
         userRepository.save(user);
+    }
+
+    public User getProfile(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User updateProfile(String username, String fullName, String phone, String email) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setFullName(fullName);
+        user.setPhone(phone);
+        user.setEmail(email);
+        return userRepository.save(user);
     }
 }

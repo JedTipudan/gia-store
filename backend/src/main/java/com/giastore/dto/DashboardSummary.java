@@ -14,4 +14,6 @@ public class DashboardSummary {
     private BigDecimal totalCollected;
     private long unpaidPayments;
     private long totalPayments;
+    private long pendingMemberApprovals;
+    private long pendingPaymentApprovals;
 }

@@ -3,6 +3,7 @@ package com.giastore.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -22,9 +23,16 @@ public class Member {
     @JoinColumn(name = "package_id", nullable = false)
     private PaluwaganPackage paluwaganPackage;
 
-    @Column(nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
     private LocalDate startDate;
 
     @Column(nullable = false)
-    private String status = "ACTIVE"; // ACTIVE, COMPLETED, DROPPED
+    private String status = "PENDING"; // PENDING, ACTIVE, REJECTED, COMPLETED, DROPPED
+
+    private LocalDateTime appliedAt = LocalDateTime.now();
+    private LocalDateTime approvedAt;
+    private String adminNote;
 }

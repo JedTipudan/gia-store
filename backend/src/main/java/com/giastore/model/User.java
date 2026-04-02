@@ -18,5 +18,9 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String role = "ADMIN";
+    private String role = "CUSTOMER"; // ADMIN or CUSTOMER
+
+    private String email;
+    private String phone;
+    private String fullName;
 }

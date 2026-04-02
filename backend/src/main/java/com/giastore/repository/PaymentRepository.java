@@ -8,12 +8,17 @@ import java.util.List;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByMemberId(Long memberId);
+    List<Payment> findByMemberUserId(Long userId);
     List<Payment> findByPaidFalse();
     List<Payment> findByPaidTrue();
+    List<Payment> findByApprovalStatus(String status);
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.paid = true")
     BigDecimal sumPaidPayments();
 
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.paid = false")
     Long countUnpaidPayments();
+
+    @Query("SELECT COUNT(p) FROM Payment p WHERE p.approvalStatus = 'PENDING' AND p.proofImageUrl IS NOT NULL")
+    Long countPendingApprovals();
 }

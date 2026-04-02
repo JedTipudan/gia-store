@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/update_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'customer/customer_home.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -65,8 +66,17 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     final loggedIn = await AuthService.isLoggedIn();
     if (!mounted) return;
+    if (!loggedIn) {
+      Navigator.of(context).pushReplacement(PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const LoginScreen(),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ));
+      return;
+    }
+    final role = await AuthService.getRole();
     Navigator.of(context).pushReplacement(PageRouteBuilder(
-      pageBuilder: (_, __, ___) => loggedIn ? const HomeScreen() : const LoginScreen(),
+      pageBuilder: (_, __, ___) => role == 'ADMIN' ? const HomeScreen() : const CustomerHome(),
       transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
       transitionDuration: const Duration(milliseconds: 400),
     ));
