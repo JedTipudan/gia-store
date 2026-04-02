@@ -66,15 +66,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(children: [
               Container(
                 width: 88, height: 88,
-                decoration: BoxDecoration(color: const Color(0xFF16a34a),
-                    borderRadius: BorderRadius.circular(24)),
-                child: Stack(alignment: Alignment.center, children: [
-                  const Icon(Icons.storefront_rounded, size: 50, color: Colors.white),
-                  Positioned(bottom: 10, right: 10,
-                    child: Container(width: 26, height: 26,
-                      decoration: const BoxDecoration(color: Color(0xFFfbbf24), shape: BoxShape.circle),
-                      child: const Icon(Icons.currency_exchange, size: 14, color: Colors.white))),
-                ]),
+                decoration: BoxDecoration(color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10, offset: const Offset(0, 4))]),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset('assets/logo.jpg', fit: BoxFit.cover),
               ),
               const SizedBox(height: 14),
               Text('Gia Store', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold)),

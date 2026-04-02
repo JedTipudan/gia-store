@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../services/update_service.dart';
-import '../widgets/app_icon.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 
@@ -87,22 +86,15 @@ class _SplashScreenState extends State<SplashScreen>
             scale: _scale,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Container(
-                width: 100, height: 100,
+                width: 120, height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(28),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20, offset: const Offset(0, 8))],
                 ),
-                child: Stack(alignment: Alignment.center, children: [
-                  const Icon(Icons.storefront_rounded, size: 56, color: Colors.white),
-                  Positioned(
-                    bottom: 8, right: 8,
-                    child: Container(
-                      width: 28, height: 28,
-                      decoration: const BoxDecoration(color: Color(0xFFfbbf24), shape: BoxShape.circle),
-                      child: const Icon(Icons.currency_exchange, size: 16, color: Colors.white),
-                    ),
-                  ),
-                ]),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset('assets/logo.jpg', fit: BoxFit.cover),
               ),
               const SizedBox(height: 20),
               Text('Gia Store', style: GoogleFonts.outfit(

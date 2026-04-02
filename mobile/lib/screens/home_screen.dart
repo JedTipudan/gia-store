@@ -85,16 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Stack(children: [
-                  Container(width: 56, height: 56,
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2),
+                  Container(width: 60, height: 60,
+                    decoration: BoxDecoration(color: Colors.white,
                         borderRadius: BorderRadius.circular(16)),
-                    child: Stack(alignment: Alignment.center, children: [
-                      const Icon(Icons.storefront_rounded, size: 32, color: Colors.white),
-                      Positioned(bottom: 6, right: 6,
-                        child: Container(width: 18, height: 18,
-                          decoration: const BoxDecoration(color: Color(0xFFfbbf24), shape: BoxShape.circle),
-                          child: const Icon(Icons.currency_exchange, size: 10, color: Colors.white))),
-                    ])),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset('assets/logo.jpg', fit: BoxFit.cover)),
                 ]),
                 const SizedBox(height: 12),
                 Text('Gia Store', style: GoogleFonts.outfit(fontSize: 20,
