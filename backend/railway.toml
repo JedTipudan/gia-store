@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "java -jar app.jar"
+healthcheckPath = "/api/dashboard"
+restartPolicyType = "ON_FAILURE"

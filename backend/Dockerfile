@@ -1,4 +1,4 @@
-# Force redeploy - v1.4.0
+# Force redeploy - v1.5.0 - fix 403
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 COPY pom.xml .
