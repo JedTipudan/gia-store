@@ -1,0 +1,1 @@
+{"userId":"1","token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc3NTEyNTQyNiwiZXhwIjoxNzc1MjExODI2fQ.dO7x8YY5N1RnxNVCCTMOtLikEZVylBGqZhTlQ14tCr4","username":"admin","role":"ADMIN"}
