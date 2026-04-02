@@ -172,13 +172,18 @@ class _PackagesScreenState extends State<PackagesScreen> {
             // Stats row
             Row(children: [
               _statChip(Icons.payments_outlined,
-                  '${formatPeso(pkg['weeklyAmount'])}/wk', const Color(0xFF16a34a)),
+                  '${formatPeso(pkg['weeklyAmount'])}/${pkg['paymentType'] == 'MONTHLY' ? 'mo' : 'wk'}',
+                  const Color(0xFF16a34a)),
               const SizedBox(width: 8),
-              _statChip(Icons.calendar_today,
-                  '${pkg['durationWeeks']} wks', const Color(0xFF2563eb)),
+              _statChip(
+                  pkg['paymentType'] == 'MONTHLY'
+                      ? Icons.calendar_month_rounded
+                      : Icons.calendar_view_week_rounded,
+                  pkg['paymentType'] == 'MONTHLY' ? 'Monthly' : 'Weekly',
+                  const Color(0xFF2563eb)),
               const SizedBox(width: 8),
-              _statChip(Icons.account_balance_wallet_outlined,
-                  formatPeso(total), const Color(0xFF7c3aed)),
+              _statChip(Icons.format_list_numbered_rounded,
+                  '${pkg['durationWeeks']} periods', const Color(0xFF7c3aed)),
             ]),
             const SizedBox(height: 14),
             // Slots
@@ -252,6 +257,7 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
   bool _active = true;
   bool _loading = false;
   bool _uploading = false;
+  String _paymentType = 'WEEKLY'; // WEEKLY or MONTHLY
   String _imageUrl = '';
   File? _pickedImage;
 
@@ -266,6 +272,7 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
       _slots.text = widget.pkg!['maxSlots']?.toString() ?? '10';
       _imageUrl = widget.pkg!['imageUrl'] ?? '';
       _active = widget.pkg!['active'] ?? true;
+      _paymentType = widget.pkg!['paymentType'] ?? 'WEEKLY';
     } else {
       _slots.text = '10';
     }
@@ -331,6 +338,7 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
       'weeklyAmount': double.tryParse(_amount.text) ?? 0,
       'durationWeeks': int.tryParse(_weeks.text) ?? 0,
       'maxSlots': int.tryParse(_slots.text) ?? 10,
+      'paymentType': _paymentType,
       'imageUrl': _imageUrl, 'active': _active,
     };
     try {
@@ -413,14 +421,76 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
           _field(_name, 'Package Name *'),
           _field(_desc, 'Description'),
           Row(children: [
-            Expanded(child: _field(_amount, 'Weekly Amount (₱) *',
+            Expanded(child: _field(_amount,
+                _paymentType == 'MONTHLY' ? 'Monthly Amount (₱) *' : 'Weekly Amount (₱) *',
                 type: TextInputType.number)),
             const SizedBox(width: 12),
-            Expanded(child: _field(_weeks, 'Duration (weeks) *',
+            Expanded(child: _field(_weeks,
+                _paymentType == 'MONTHLY' ? 'Duration (months) *' : 'Duration (weeks) *',
                 type: TextInputType.number)),
           ]),
           _field(_slots, 'Max Slots (members allowed)',
               type: TextInputType.number),
+          // Payment type selector
+          Padding(padding: const EdgeInsets.only(bottom: 12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Payment Schedule', style: GoogleFonts.outfit(
+                  fontSize: 13, color: Colors.grey[600])),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: GestureDetector(
+                  onTap: () => setState(() => _paymentType = 'WEEKLY'),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _paymentType == 'WEEKLY'
+                          ? const Color(0xFF16a34a)
+                          : Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF1E2E20) : const Color(0xFFF4F7F4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: _paymentType == 'WEEKLY'
+                              ? const Color(0xFF16a34a) : Colors.grey.withOpacity(0.3))),
+                    child: Column(children: [
+                      Icon(Icons.calendar_view_week_rounded,
+                          color: _paymentType == 'WEEKLY' ? Colors.white : Colors.grey,
+                          size: 22),
+                      const SizedBox(height: 4),
+                      Text('Weekly', style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w600, fontSize: 13,
+                          color: _paymentType == 'WEEKLY' ? Colors.white : Colors.grey)),
+                    ]),
+                  ),
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: GestureDetector(
+                  onTap: () => setState(() => _paymentType = 'MONTHLY'),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _paymentType == 'MONTHLY'
+                          ? const Color(0xFF16a34a)
+                          : Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF1E2E20) : const Color(0xFFF4F7F4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: _paymentType == 'MONTHLY'
+                              ? const Color(0xFF16a34a) : Colors.grey.withOpacity(0.3))),
+                    child: Column(children: [
+                      Icon(Icons.calendar_month_rounded,
+                          color: _paymentType == 'MONTHLY' ? Colors.white : Colors.grey,
+                          size: 22),
+                      const SizedBox(height: 4),
+                      Text('Monthly', style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w600, fontSize: 13,
+                          color: _paymentType == 'MONTHLY' ? Colors.white : Colors.grey)),
+                    ]),
+                  ),
+                )),
+              ]),
+            ])),
           if (total > 0)
             Container(
               width: double.infinity, padding: const EdgeInsets.all(14),
@@ -433,7 +503,7 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
                 const Icon(Icons.account_balance_wallet_outlined,
                     color: Color(0xFF16a34a), size: 18),
                 const SizedBox(width: 8),
-                Text('Total Package Value: ${formatPeso(total)}',
+                Text('Total Package Value: ${formatPeso(total)} (${int.tryParse(_weeks.text) ?? 0} ${_paymentType == 'MONTHLY' ? 'months' : 'weeks'})',
                     style: GoogleFonts.outfit(fontWeight: FontWeight.w600,
                         color: const Color(0xFF16a34a))),
               ])),

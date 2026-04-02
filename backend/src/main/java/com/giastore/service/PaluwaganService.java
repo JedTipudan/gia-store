@@ -35,6 +35,7 @@ public class PaluwaganService {
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
         pkg.setWeeklyAmount(updated.getWeeklyAmount()); pkg.setDurationWeeks(updated.getDurationWeeks());
         pkg.setMaxSlots(updated.getMaxSlots()); pkg.setImageUrl(updated.getImageUrl());
+        pkg.setPaymentType(updated.getPaymentType());
         pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
     }
@@ -117,15 +118,20 @@ public class PaluwaganService {
 
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();
+        boolean isMonthly = "MONTHLY".equals(pkg.getPaymentType());
         List<Payment> payments = new ArrayList<>();
         for (int i = 1; i <= pkg.getDurationWeeks(); i++) {
             Payment p = new Payment();
-            p.setMember(member); p.setPeriodNumber(i);
-            p.setWeekNumber(i); // keep DB column in sync
-            p.setPeriodLabel("Week " + i);
+            p.setMember(member);
+            p.setPeriodNumber(i);
+            p.setWeekNumber(i);
+            p.setPeriodLabel((isMonthly ? "Month " : "Week ") + i);
             p.setAmount(pkg.getWeeklyAmount());
-            p.setDueDate(member.getStartDate().plusWeeks(i - 1));
-            p.setPaid(false); p.setApprovalStatus("PENDING");
+            p.setDueDate(isMonthly
+                ? member.getStartDate().plusMonths(i - 1)
+                : member.getStartDate().plusWeeks(i - 1));
+            p.setPaid(false);
+            p.setApprovalStatus("PENDING");
             payments.add(p);
         }
         paymentRepo.saveAll(payments);

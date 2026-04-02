@@ -276,12 +276,15 @@ class _CustomerPackagesState extends State<CustomerPackages> {
                     fontSize: 12, color: Colors.grey[400]))),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 6, children: [
-              _chip('${formatPeso(pkg['weeklyAmount'])}/week',
+              _chip('${formatPeso(pkg['weeklyAmount'])}/${pkg['paymentType'] == 'MONTHLY' ? 'month' : 'week'}',
                   Icons.payments_outlined, const Color(0xFF4ade80)),
-              _chip('${pkg['durationWeeks']} weeks',
-                  Icons.calendar_today, Colors.blue[300]!),
-              _chip('$enrolled/$maxSlots enrolled',
-                  Icons.people_outline, Colors.orange),
+              _chip(pkg['paymentType'] == 'MONTHLY' ? 'Monthly' : 'Weekly',
+                  pkg['paymentType'] == 'MONTHLY'
+                      ? Icons.calendar_month_rounded
+                      : Icons.calendar_view_week_rounded,
+                  Colors.blue[300]!),
+              _chip('${pkg['durationWeeks']} periods',
+                  Icons.format_list_numbered_rounded, Colors.orange),
             ]),
             const SizedBox(height: 10),
             Text(formatPeso(total), style: GoogleFonts.outfit(

@@ -26,6 +26,9 @@ public class PaluwaganPackage {
     @Column(nullable = false)
     private Integer maxSlots = 10;
 
+    @Column(nullable = false)
+    private String paymentType = "WEEKLY"; // WEEKLY or MONTHLY
+
     private String imageUrl;
 
     @Column(nullable = false)
