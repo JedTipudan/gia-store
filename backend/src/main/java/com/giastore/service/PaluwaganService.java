@@ -121,6 +121,7 @@ public class PaluwaganService {
         for (int i = 1; i <= pkg.getDurationWeeks(); i++) {
             Payment p = new Payment();
             p.setMember(member); p.setPeriodNumber(i);
+            p.setWeekNumber(i); // keep DB column in sync
             p.setPeriodLabel("Week " + i);
             p.setAmount(pkg.getWeeklyAmount());
             p.setDueDate(member.getStartDate().plusWeeks(i - 1));

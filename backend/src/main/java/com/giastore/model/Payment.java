@@ -18,11 +18,15 @@ public class Payment {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Column(nullable = false)
-    private Integer periodNumber; // week or month number
+    // Keep weekNumber for DB backward compatibility
+    @Column(name = "week_number", nullable = false)
+    private Integer weekNumber = 1;
 
     @Column(nullable = false)
-    private String periodLabel; // e.g. "Week 1", "Month 1"
+    private Integer periodNumber;
+
+    @Column(nullable = false)
+    private String periodLabel;
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -34,15 +38,13 @@ public class Payment {
     private LocalDateTime paidAt;
     private String receiptNumber;
 
-    // Customer proof submission
     private String proofImageUrl;
     private String paymentMethod;
     private String referenceNumber;
     private LocalDateTime submittedAt;
 
-    // Admin approval
     @Column(nullable = false)
-    private String approvalStatus = "PENDING"; // PENDING, SUBMITTED, APPROVED, REJECTED
+    private String approvalStatus = "PENDING";
 
     private String adminNote;
 }

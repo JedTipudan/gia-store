@@ -5,6 +5,8 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/dialogs.dart';
+import '../../widgets/food_image.dart';
+import '../../widgets/food_image.dart';
 
 class CustomerPackages extends StatefulWidget {
   const CustomerPackages({super.key});
@@ -187,8 +189,38 @@ class _CustomerPackagesState extends State<CustomerPackages> {
     final canApply = !isFull && (status == 'NONE' || status == 'REJECTED');
 
     return Card(margin: const EdgeInsets.only(bottom: 14),
-      child: Padding(padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Package image
+        if ((pkg['imageUrl'] ?? '').toString().isNotEmpty)
+          FoodImage(
+            imageUrl: pkg['imageUrl'],
+            height: 140,
+            width: double.infinity,
+            placeholder: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF052e16), Color(0xFF16a34a)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight)),
+              child: Center(child: Icon(Icons.inventory_2_rounded,
+                  size: 48, color: Colors.white.withOpacity(0.4))),
+            ),
+          )
+        else
+          Container(
+            height: 100,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF052e16), Color(0xFF16a34a)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight)),
+            child: Center(child: Icon(Icons.inventory_2_rounded,
+                size: 40, color: Colors.white.withOpacity(0.4))),
+          ),
+        Padding(padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Expanded(child: Text(pkg['name'] ?? '', style: GoogleFonts.outfit(
                 fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white))),
@@ -244,7 +276,8 @@ class _CustomerPackagesState extends State<CustomerPackages> {
                     : 'Apply Now',
                 style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
             )),
-        ])));
+          ])),
+      ]));
   }
 
   Widget _chip(String label, IconData icon, Color color) => Container(
