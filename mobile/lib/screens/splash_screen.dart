@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'customer/customer_home.dart';
@@ -25,8 +26,10 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    _logoCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _textCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _logoCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 800));
+    _textCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 600));
 
     _logoScale = Tween<double>(begin: 0.5, end: 1.0)
         .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
@@ -43,27 +46,11 @@ class _SplashScreenState extends State<SplashScreen>
     final info = await PackageInfo.fromPlatform();
     final update = await UpdateService.checkForUpdate(info.version);
     if (!mounted) return;
-    if (update != null) { _showUpdateDialog(update); return; }
+    if (update != null) {
+      showUpdateDialog(context, update, onLater: _navigate);
+      return;
+    }
     _navigate();
-  }
-
-  void _showUpdateDialog(UpdateInfo update) {
-    showDialog(context: context, barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Update Available v${update.version}',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text(update.releaseNotes.isNotEmpty
-            ? update.releaseNotes : 'A new version is available.',
-            style: GoogleFonts.outfit(fontSize: 14)),
-        actions: [
-          TextButton(onPressed: _navigate,
-              child: Text('Later', style: GoogleFonts.outfit(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => UpdateService.openDownload(update.downloadUrl),
-            child: Text('Update', style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
-        ],
-      ));
   }
 
   Future<void> _navigate() async {
@@ -84,7 +71,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  void dispose() { _logoCtrl.dispose(); _textCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _logoCtrl.dispose();
+    _textCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,10 +96,9 @@ class _SplashScreenState extends State<SplashScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.3),
-                          blurRadius: 30, offset: const Offset(0, 12)),
-                    ],
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 30, offset: const Offset(0, 12))],
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Image.asset('assets/logo.jpg', fit: BoxFit.cover),
@@ -130,12 +120,9 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             const SizedBox(height: 60),
             FadeTransition(opacity: _textFade,
-              child: SizedBox(
-                width: 24, height: 24,
+              child: SizedBox(width: 24, height: 24,
                 child: CircularProgressIndicator(
-                    color: Colors.white.withOpacity(0.6), strokeWidth: 2),
-              ),
-            ),
+                    color: Colors.white.withOpacity(0.6), strokeWidth: 2))),
           ]),
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../services/auth_service.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'food_screen.dart';
@@ -60,35 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _showUpdateDialog(UpdateInfo update) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Row(children: [
-        Container(padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: _primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.system_update_rounded, color: _primary, size: 20)),
-        const SizedBox(width: 10),
-        Text('Update Available', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-      ]),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Version ${update.version} is ready',
-            style: GoogleFonts.outfit(color: Colors.grey[600])),
-        if (update.releaseNotes.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(update.releaseNotes, style: GoogleFonts.outfit(fontSize: 13)),
-        ],
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context),
-            child: Text('Later', style: GoogleFonts.outfit(color: Colors.grey))),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.download_rounded, size: 16),
-          label: Text('Update Now', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-          style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          onPressed: () => UpdateService.openDownload(update.downloadUrl)),
-      ],
-    ));
+    showUpdateDialog(context, update);
   }
 
   void _logout() async {

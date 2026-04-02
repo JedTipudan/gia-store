@@ -26,13 +26,12 @@ class UpdateService {
         } else if (line.startsWith('download=')) {
           downloadUrl = line.substring(line.indexOf('=') + 1).trim();
         } else if (line.startsWith('-')) {
-          notesList.add(line);
+          notesList.add(line.replaceFirst('-', '').trim());
         }
       }
 
       if (latestVersion.isEmpty) return null;
 
-      // Strip build number from current version (e.g. "1.0.1+5" -> "1.0.1")
       final cleanCurrent = currentVersion.contains('+')
           ? currentVersion.split('+').first
           : currentVersion;
@@ -41,7 +40,8 @@ class UpdateService {
         return UpdateInfo(
           version: latestVersion,
           downloadUrl: downloadUrl,
-          releaseNotes: notesList.join('\n'),
+          releaseNotes: notesList,
+          currentVersion: cleanCurrent,
         );
       }
       return null;
@@ -67,9 +67,20 @@ class UpdateService {
   }
 
   static Future<void> openDownload(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final uri = Uri.parse(url);
+      // Try external application first
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback to platform default
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      // Last resort - try without mode
+      try {
+        await launchUrl(Uri.parse(url));
+      } catch (_) {}
     }
   }
 }
@@ -77,10 +88,13 @@ class UpdateService {
 class UpdateInfo {
   final String version;
   final String downloadUrl;
-  final String releaseNotes;
+  final List<String> releaseNotes;
+  final String currentVersion;
+
   UpdateInfo({
     required this.version,
     required this.downloadUrl,
     required this.releaseNotes,
+    required this.currentVersion,
   });
 }

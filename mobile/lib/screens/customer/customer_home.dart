@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/auth_service.dart';
 import '../../services/update_service.dart';
 import '../login_screen.dart';
+import '../../widgets/update_dialog.dart';
 import 'customer_dashboard.dart';
 import 'customer_food_menu.dart';
 import 'customer_packages.dart';
@@ -49,25 +50,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     final info = await PackageInfo.fromPlatform();
     final update = await UpdateService.checkForUpdate(info.version);
     if (!mounted || update == null) return;
-    showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: _card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Update Available v${update.version}',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-      content: Text(update.releaseNotes.isNotEmpty
-          ? update.releaseNotes : 'A new version is available.',
-          style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[300])),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context),
-            child: Text('Later', style: GoogleFonts.outfit(color: Colors.grey))),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: _primaryDark,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          onPressed: () => UpdateService.openDownload(update.downloadUrl),
-          child: Text('Update', style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
-      ],
-    ));
+    showUpdateDialog(context, update);
   }
 
   void _logout() async {
