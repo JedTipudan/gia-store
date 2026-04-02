@@ -1,5 +1,6 @@
 package com.giastore.service;
 
+import com.giastore.model.User;
 import com.giastore.repository.UserRepository;
 import com.giastore.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
