@@ -1,5 +1,5 @@
-version=1.5.0
-download=https://github.com/JedTipudan/gia-store/releases/latest
+version=1.6.0
+download=https://github.com/JedTipudan/gia-store/releases/latest/download/app-release.apk
 - Fixed approve member error
 - 1 paluwagan per customer rule
 - Payment tracker with progress

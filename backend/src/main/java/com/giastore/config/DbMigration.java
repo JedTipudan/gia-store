@@ -14,13 +14,13 @@ public class DbMigration {
     CommandLineRunner migrateDb(JdbcTemplate jdbc) {
         return args -> {
             try {
-                // Add missing columns if they don't exist
-                jdbc.execute("ALTER TABLE paluwagan_packages ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)");
-                jdbc.execute("ALTER TABLE paluwagan_packages ADD COLUMN IF NOT EXISTS max_slots INT NOT NULL DEFAULT 10");
-                System.out.println("✓ DB migration completed");
-            } catch (Exception e) {
-                System.out.println("DB migration skipped or already applied: " + e.getMessage());
-            }
+            // Add missing columns if they don't exist
+            jdbc.execute("ALTER TABLE paluwagan_packages ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)");
+            jdbc.execute("ALTER TABLE paluwagan_packages ADD COLUMN IF NOT EXISTS max_slots INT NOT NULL DEFAULT 10");
+            System.out.println("✓ DB migration completed");
+        } catch (Exception e) {
+            System.out.println("DB migration skipped or already applied: " + e.getMessage());
+        }
         };
     }
 }

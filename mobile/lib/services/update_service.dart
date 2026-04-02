@@ -67,19 +67,21 @@ class UpdateService {
   }
 
   static Future<void> openDownload(String url) async {
+    // Direct APK download URL from GitHub releases
+    const directApk =
+        'https://github.com/JedTipudan/gia-store/releases/latest/download/app-release.apk';
     try {
-      final uri = Uri.parse(url);
-      // Try external application first
+      final uri = Uri.parse(directApk);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        // Fallback to platform default
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        // Fallback to releases page
+        final fallback = Uri.parse(url);
+        await launchUrl(fallback, mode: LaunchMode.externalApplication);
       }
     } catch (_) {
-      // Last resort - try without mode
       try {
-        await launchUrl(Uri.parse(url));
+        await launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
       } catch (_) {}
     }
   }
