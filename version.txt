@@ -1,0 +1,7 @@
+version=1.0.0
+download=https://github.com/JedTipudan/gia-store/releases/latest
+- Initial release of Gia Store
+- Dashboard with analytics
+- Food item management
+- Paluwagan packages, members, payments
+- PDF receipt download
