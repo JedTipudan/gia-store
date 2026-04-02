@@ -28,7 +28,7 @@ public class ReceiptService {
         Document doc = new Document(pdf);
 
         // Header
-        Paragraph header = new Paragraph("Paluwagan Food Store Manager")
+        Paragraph header = new Paragraph("Gia Foodies - Official Receipt")
                 .setBold().setFontSize(18).setTextAlignment(TextAlignment.CENTER);
         doc.add(header);
 
@@ -46,8 +46,8 @@ public class ReceiptService {
         addRow(table, "Member Name:", payment.getMember().getFullName());
         addRow(table, "Phone:", payment.getMember().getPhone() != null ? payment.getMember().getPhone() : "N/A");
         addRow(table, "Package:", payment.getMember().getPaluwaganPackage().getName());
-        addRow(table, "Period:", (payment.getPeriodLabel() != null ? payment.getPeriodLabel() : "Week " + payment.getPeriodNumber()) + " of " +
-                payment.getMember().getPaluwaganPackage().getDurationWeeks());
+        addRow(table, "Period:", (payment.getPeriodLabel() != null ? payment.getPeriodLabel() : "Month " + payment.getPeriodNumber()) + " of " +
+                payment.getMember().getPaluwaganPackage().getDurationMonths() + " months");
         addRow(table, "Due Date:", payment.getDueDate() != null ? payment.getDueDate().toString() : "N/A");
         addRow(table, "Paid On:", payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A");
 
