@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(_username[0].toUpperCase(),
                     style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-              itemBuilder: (_) => [
+              itemBuilder: (_) => <PopupMenuEntry<dynamic>>[
                 PopupMenuItem(
                   child: Text(_username, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                   enabled: false,
