@@ -36,4 +36,20 @@ public class AuthService {
         user.setRole("ADMIN");
         userRepository.save(user);
     }
+
+    public boolean changePassword(String username, String oldPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) return false;
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return true;
+    }
+
+    public void changeUsername(String oldUsername, String newUsername) {
+        User user = userRepository.findByUsername(oldUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setUsername(newUsername);
+        userRepository.save(user);
+    }
 }

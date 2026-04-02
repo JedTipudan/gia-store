@@ -27,11 +27,8 @@ class _FoodScreenState extends State<FoodScreen> {
   }
 
   void _openForm([Map? item]) async {
-    final result = await showModalBottomSheet(
-      context: context, isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _FoodForm(item: item),
-    );
+    final result = await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => _FoodFormScreen(item: item)));
     if (result == true && mounted) {
       showSnack(context, item != null ? 'Food item updated!' : 'Food item added!');
       _load();
@@ -62,94 +59,116 @@ class _FoodScreenState extends State<FoodScreen> {
               onRefresh: _load,
               child: _items.isEmpty
                   ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.shopping_basket_outlined, size: 64, color: Colors.grey[300]),
+                      Icon(Icons.fastfood_outlined, size: 64, color: Colors.grey[300]),
                       const SizedBox(height: 12),
                       Text('No food items yet', style: GoogleFonts.outfit(color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      Text('Tap + to add your first item', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
                     ]))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.75),
                       itemCount: _items.length,
                       itemBuilder: (_, i) {
                         final item = _items[i];
                         final isActive = item['active'] ?? true;
+                        final hasImage = (item['imageUrl'] ?? '').toString().isNotEmpty;
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(children: [
-                              Container(width: 48, height: 48,
-                                decoration: BoxDecoration(
-                                  color: isActive ? const Color(0xFFDCFCE7) : Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(12)),
-                                child: Icon(Icons.fastfood_rounded,
-                                    color: isActive ? const Color(0xFF16a34a) : Colors.grey)),
-                              const SizedBox(width: 12),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(item['name'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-                                if ((item['category'] ?? '').toString().isNotEmpty)
-                                  Text(item['category'], style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
-                                Row(children: [
-                                  Text(formatPeso(item['price']), style: GoogleFonts.outfit(
-                                      fontWeight: FontWeight.bold, color: const Color(0xFF16a34a), fontSize: 13)),
-                                  const SizedBox(width: 8),
-                                  Text('Stock: ${item['stock']}', style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
-                                ]),
-                              ])),
-                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                GestureDetector(
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            // Image
+                            Stack(children: [
+                              Container(
+                                height: 120, width: double.infinity,
+                                color: isActive ? const Color(0xFFDCFCE7) : Colors.grey[100],
+                                child: hasImage
+                                    ? Image.network(item['imageUrl'], fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => _foodIcon(isActive))
+                                    : _foodIcon(isActive),
+                              ),
+                              // Status badge
+                              Positioned(top: 8, right: 8,
+                                child: GestureDetector(
                                   onTap: () => _toggleAvailability(item),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: isActive ? const Color(0xFFDCFCE7) : Colors.grey[100],
+                                      color: isActive ? const Color(0xFF16a34a) : Colors.grey[600],
                                       borderRadius: BorderRadius.circular(9999)),
                                     child: Text(isActive ? 'Available' : 'Unavailable',
-                                        style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600,
-                                            color: isActive ? const Color(0xFF16a34a) : Colors.grey)),
+                                        style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w600,
+                                            color: Colors.white)),
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                              ),
+                            ]),
+                            // Info
+                            Expanded(child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(item['name'] ?? '', style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.bold, fontSize: 13),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  if ((item['category'] ?? '').toString().isNotEmpty)
+                                    Text(item['category'], style: GoogleFonts.outfit(
+                                        fontSize: 10, color: Colors.grey), maxLines: 1),
+                                  Text(formatPeso(item['price']), style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.bold, color: const Color(0xFF16a34a), fontSize: 14)),
+                                  Text('Stock: ${item['stock']}', style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey)),
+                                ]),
                                 Row(children: [
-                                  _actionBtn(Icons.edit, const Color(0xFFDBEAFE), const Color(0xFF2563eb),
-                                      () => _openForm(Map<String, dynamic>.from(item))),
+                                  Expanded(child: _actionBtn(Icons.edit, const Color(0xFFDBEAFE), const Color(0xFF2563eb),
+                                      () => _openForm(Map<String, dynamic>.from(item)))),
                                   const SizedBox(width: 6),
-                                  _actionBtn(Icons.delete, const Color(0xFFFEE2E2), Colors.red,
-                                      () => _delete(item)),
+                                  Expanded(child: _actionBtn(Icons.delete, const Color(0xFFFEE2E2), Colors.red,
+                                      () => _delete(item))),
                                 ]),
                               ]),
-                            ]),
-                          ),
+                            )),
+                          ]),
                         );
                       }),
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(),
         backgroundColor: const Color(0xFF16a34a),
-        child: const Icon(Icons.add, color: Colors.white),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: Text('Add Food', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
+  Widget _foodIcon(bool isActive) => Center(
+    child: Icon(Icons.fastfood_rounded, size: 48,
+        color: isActive ? const Color(0xFF16a34a) : Colors.grey[400]));
+
   Widget _actionBtn(IconData icon, Color bg, Color color, VoidCallback onTap) =>
       GestureDetector(onTap: onTap,
-        child: Container(padding: const EdgeInsets.all(6),
+        child: Container(padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 14, color: color)));
 }
 
-class _FoodForm extends StatefulWidget {
+// Full screen form to avoid FAB overlap
+class _FoodFormScreen extends StatefulWidget {
   final Map? item;
-  const _FoodForm({this.item});
+  const _FoodFormScreen({this.item});
   @override
-  State<_FoodForm> createState() => _FoodFormState();
+  State<_FoodFormScreen> createState() => _FoodFormScreenState();
 }
 
-class _FoodFormState extends State<_FoodForm> {
+class _FoodFormScreenState extends State<_FoodFormScreen> {
   final _name = TextEditingController();
   final _desc = TextEditingController();
   final _cat = TextEditingController();
   final _price = TextEditingController();
   final _stock = TextEditingController();
+  final _imageUrl = TextEditingController();
   bool _active = true, _loading = false;
 
   @override
@@ -161,6 +180,7 @@ class _FoodFormState extends State<_FoodForm> {
       _cat.text = widget.item!['category'] ?? '';
       _price.text = widget.item!['price']?.toString() ?? '';
       _stock.text = widget.item!['stock']?.toString() ?? '0';
+      _imageUrl.text = widget.item!['imageUrl'] ?? '';
       _active = widget.item!['active'] ?? true;
     }
   }
@@ -168,8 +188,11 @@ class _FoodFormState extends State<_FoodForm> {
   Future<void> _save() async {
     if (_name.text.isEmpty || _price.text.isEmpty) return;
     setState(() => _loading = true);
-    final body = {'name': _name.text, 'description': _desc.text, 'category': _cat.text,
-      'price': double.tryParse(_price.text) ?? 0, 'stock': int.tryParse(_stock.text) ?? 0, 'active': _active};
+    final body = {
+      'name': _name.text, 'description': _desc.text, 'category': _cat.text,
+      'price': double.tryParse(_price.text) ?? 0, 'stock': int.tryParse(_stock.text) ?? 0,
+      'imageUrl': _imageUrl.text.trim(), 'active': _active,
+    };
     try {
       if (widget.item != null) await ApiService.put('/food-items/${widget.item!['id']}', body);
       else await ApiService.post('/food-items', body);
@@ -179,46 +202,78 @@ class _FoodFormState extends State<_FoodForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
-      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(widget.item != null ? 'Edit Food Item' : 'Add Food Item',
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        ]),
-        const SizedBox(height: 8),
-        _f(_name, 'Name *'), _f(_desc, 'Description'), _f(_cat, 'Category'),
-        Row(children: [
-          Expanded(child: _f(_price, 'Price (₱) *', type: TextInputType.number)),
-          const SizedBox(width: 12),
-          Expanded(child: _f(_stock, 'Stock', type: TextInputType.number)),
-        ]),
-        SwitchListTile(value: _active, contentPadding: EdgeInsets.zero,
-            title: Text('Available', style: GoogleFonts.outfit()),
+    final hasImage = _imageUrl.text.isNotEmpty;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.item != null ? 'Edit Food Item' : 'Add Food Item',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        actions: [
+          TextButton(onPressed: _loading ? null : _save,
+            child: _loading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(widget.item != null ? 'Update' : 'Save',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: const Color(0xFF16a34a)))),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Image preview
+          Center(child: Column(children: [
+            Container(
+              width: double.infinity, height: 180,
+              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              child: hasImage
+                  ? Image.network(_imageUrl.text, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder())
+                  : _placeholder(),
+            ),
+            const SizedBox(height: 8),
+            Text('Add an image URL below to show food photo',
+                style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
+          ])),
+          const SizedBox(height: 16),
+          _f(_imageUrl, 'Image URL (paste link from internet)', onChanged: () => setState(() {})),
+          const SizedBox(height: 4),
+          Text('Tip: Right-click any food image online → Copy image address → paste here',
+              style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey)),
+          const SizedBox(height: 16),
+          _f(_name, 'Food Name *'),
+          _f(_desc, 'Description'),
+          _f(_cat, 'Category (e.g. Rice, Viand, Snack)'),
+          Row(children: [
+            Expanded(child: _f(_price, 'Price (₱) *', type: TextInputType.number)),
+            const SizedBox(width: 12),
+            Expanded(child: _f(_stock, 'Stock', type: TextInputType.number)),
+          ]),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _active,
+            title: Text('Available for customers', style: GoogleFonts.outfit()),
             activeColor: const Color(0xFF16a34a),
-            onChanged: (v) => setState(() => _active = v)),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, height: 46,
-          child: ElevatedButton(onPressed: _loading ? null : _save,
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: _loading ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                : Text(widget.item != null ? 'Update' : 'Add Item',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600)))),
-        const SizedBox(height: 20),
-      ])),
+            onChanged: (v) => setState(() => _active = v),
+          ),
+        ]),
+      ),
     );
   }
 
-  Widget _f(TextEditingController c, String l, {TextInputType type = TextInputType.text}) =>
-      Padding(padding: const EdgeInsets.only(bottom: 10),
+  Widget _placeholder() => Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    Icon(Icons.add_photo_alternate_outlined, size: 48, color: Colors.grey[400]),
+    const SizedBox(height: 8),
+    Text('No image', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12)),
+  ]);
+
+  Widget _f(TextEditingController c, String l,
+      {TextInputType type = TextInputType.text, VoidCallback? onChanged}) =>
+      Padding(padding: const EdgeInsets.only(bottom: 12),
         child: TextField(controller: c, keyboardType: type,
+            onChanged: onChanged != null ? (_) => onChanged() : null,
             decoration: InputDecoration(labelText: l, labelStyle: GoogleFonts.outfit(),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
             style: GoogleFonts.outfit()));
 }
