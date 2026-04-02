@@ -24,6 +24,12 @@ public class PaluwaganPackage {
     @Column(name = "duration_weeks", nullable = false)
     private Integer durationWeeks;
 
+    @Column(name = "duration_months")
+    private Integer durationMonths;
+
+    @Column(name = "payment_type")
+    private String paymentType = "MONTHLY";
+
     @Column(nullable = false)
     private Integer maxSlots = 10;
 
@@ -31,15 +37,4 @@ public class PaluwaganPackage {
 
     @Column(nullable = false)
     private Boolean active = true;
-
-    // Helper: treat durationWeeks as months
-    @Transient
-    public Integer getDurationMonths() {
-        return durationWeeks;
-    }
-
-    @Transient
-    public void setDurationMonths(Integer months) {
-        this.durationWeeks = months;
-    }
 }

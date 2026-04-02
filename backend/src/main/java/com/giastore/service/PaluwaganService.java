@@ -35,6 +35,8 @@ public class PaluwaganService {
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
         pkg.setWeeklyAmount(updated.getWeeklyAmount());
         pkg.setDurationWeeks(updated.getDurationWeeks());
+        pkg.setDurationMonths(updated.getDurationMonths());
+        pkg.setPaymentType(updated.getPaymentType());
         pkg.setMaxSlots(updated.getMaxSlots()); pkg.setImageUrl(updated.getImageUrl());
         pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
@@ -118,25 +120,22 @@ public class PaluwaganService {
 
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();
-        // durationWeeks column stores number of months
-        int totalMonths = pkg.getDurationWeeks();
+        // Use durationMonths if set, otherwise fall back to durationWeeks
+        int totalMonths = pkg.getDurationMonths() != null && pkg.getDurationMonths() > 0
+                ? pkg.getDurationMonths() : pkg.getDurationWeeks();
         List<Payment> payments = new ArrayList<>();
         LocalDate startDate = member.getStartDate();
-
         for (int i = 1; i <= totalMonths; i++) {
             LocalDate dueDate = startDate.withDayOfMonth(1).plusMonths(i - 1);
             Payment p = new Payment();
-            p.setMember(member);
-            p.setPeriodNumber(i);
-            p.setWeekNumber(i);
+            p.setMember(member); p.setPeriodNumber(i); p.setWeekNumber(i);
             p.setPeriodLabel("Month " + i + " (" +
                 dueDate.getMonth().getDisplayName(
-                    java.time.format.TextStyle.SHORT,
-                    java.util.Locale.ENGLISH) + " " + dueDate.getYear() + ")");
+                    java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+                + " " + dueDate.getYear() + ")");
             p.setAmount(pkg.getWeeklyAmount());
             p.setDueDate(dueDate);
-            p.setPaid(false);
-            p.setApprovalStatus("PENDING");
+            p.setPaid(false); p.setApprovalStatus("PENDING");
             payments.add(p);
         }
         paymentRepo.saveAll(payments);

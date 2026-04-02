@@ -304,8 +304,8 @@ class _PackageFormScreenState extends State<_PackageFormScreen> {
       'description': _desc.text,
       'weeklyAmount': double.tryParse(_amount.text) ?? 0,
       'durationMonths': int.tryParse(_months.text) ?? 0,
-      // keep durationWeeks for backward compat
       'durationWeeks': int.tryParse(_months.text) ?? 0,
+      'paymentType': 'MONTHLY',
       'maxSlots': int.tryParse(_slots.text) ?? 10,
       'imageUrl': _imageUrl,
       'active': _active,
