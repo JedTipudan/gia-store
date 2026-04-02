@@ -13,6 +13,7 @@ public class FoodItemService {
     private final FoodItemRepository repo;
 
     public List<FoodItem> getAll() { return repo.findAll(); }
+    public List<FoodItem> getTodaysMenu() { return repo.findByActiveTrueAndAvailableTodayTrue(); }
 
     public FoodItem getById(Long id) {
         return repo.findById(id).orElseThrow(() -> new RuntimeException("Food item not found"));
@@ -29,7 +30,14 @@ public class FoodItemService {
         existing.setStock(updated.getStock());
         existing.setImageUrl(updated.getImageUrl());
         existing.setActive(updated.getActive());
+        existing.setAvailableToday(updated.getAvailableToday());
         return repo.save(existing);
+    }
+
+    public FoodItem toggleToday(Long id) {
+        FoodItem item = getById(id);
+        item.setAvailableToday(!item.getAvailableToday());
+        return repo.save(item);
     }
 
     public void delete(Long id) {

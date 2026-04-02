@@ -22,6 +22,11 @@ public class PaluwaganController {
     @GetMapping("/packages/active")
     public List<PaluwaganPackage> getActivePackages() { return service.getActivePackages(); }
 
+    @GetMapping("/packages/{id}/enrolled-count")
+    public ResponseEntity<?> getEnrolledCount(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("enrolled", service.getEnrolledCount(id)));
+    }
+
     @PostMapping("/packages")
     public PaluwaganPackage createPackage(@RequestBody PaluwaganPackage pkg) { return service.savePackage(pkg); }
 
@@ -77,6 +82,9 @@ public class PaluwaganController {
     // Payments
     @GetMapping("/payments")
     public List<Payment> getAllPayments() { return service.getAllPayments(); }
+
+    @GetMapping("/payments/paid")
+    public List<Payment> getPaidPayments() { return service.getPaidPayments(); }
 
     @GetMapping("/payments/pending-approvals")
     public List<Payment> getPendingApprovals() { return service.getPendingPaymentApprovals(); }

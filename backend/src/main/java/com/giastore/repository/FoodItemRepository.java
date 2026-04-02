@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface FoodItemRepository extends JpaRepository<FoodItem, Long> {
     List<FoodItem> findByActiveTrue();
+    List<FoodItem> findByActiveTrueAndAvailableTodayTrue();
     List<FoodItem> findByCategoryAndActiveTrue(String category);
 }

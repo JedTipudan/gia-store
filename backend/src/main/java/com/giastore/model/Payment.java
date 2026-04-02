@@ -19,7 +19,10 @@ public class Payment {
     private Member member;
 
     @Column(nullable = false)
-    private Integer weekNumber;
+    private Integer periodNumber; // week or month number
+
+    @Column(nullable = false)
+    private String periodLabel; // e.g. "Week 1", "Month 1"
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -31,11 +34,15 @@ public class Payment {
     private LocalDateTime paidAt;
     private String receiptNumber;
 
-    // Customer payment proof
+    // Customer proof submission
     private String proofImageUrl;
-    private String paymentMethod; // CASH, GCASH, etc.
+    private String paymentMethod;
     private String referenceNumber;
-    private String approvalStatus = "PENDING"; // PENDING, APPROVED, REJECTED
     private LocalDateTime submittedAt;
+
+    // Admin approval
+    @Column(nullable = false)
+    private String approvalStatus = "PENDING"; // PENDING, SUBMITTED, APPROVED, REJECTED
+
     private String adminNote;
 }

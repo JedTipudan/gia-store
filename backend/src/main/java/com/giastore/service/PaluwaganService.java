@@ -4,7 +4,6 @@ import com.giastore.model.*;
 import com.giastore.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -18,29 +17,36 @@ public class PaluwaganService {
     private final MemberRepository memberRepo;
     private final PaymentRepository paymentRepo;
     private final PaymentMethodRepository paymentMethodRepo;
-    private final UserRepository userRepository;
 
     // --- Packages ---
     public List<PaluwaganPackage> getAllPackages() { return packageRepo.findAll(); }
     public List<PaluwaganPackage> getActivePackages() { return packageRepo.findByActiveTrue(); }
 
+    public int getEnrolledCount(Long packageId) {
+        return (int) memberRepo.findByPaluwaganPackageId(packageId).stream()
+                .filter(m -> m.getStatus().equals("ACTIVE")).count();
+    }
+
     public PaluwaganPackage savePackage(PaluwaganPackage pkg) { return packageRepo.save(pkg); }
 
     public PaluwaganPackage updatePackage(Long id, PaluwaganPackage updated) {
-        PaluwaganPackage pkg = packageRepo.findById(id).orElseThrow(() -> new RuntimeException("Package not found"));
+        PaluwaganPackage pkg = packageRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
         pkg.setWeeklyAmount(updated.getWeeklyAmount()); pkg.setDurationWeeks(updated.getDurationWeeks());
-        pkg.setActive(updated.getActive());
+        pkg.setMaxSlots(updated.getMaxSlots()); pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
     }
 
     public void deletePackage(Long id) {
-        PaluwaganPackage pkg = packageRepo.findById(id).orElseThrow(() -> new RuntimeException("Package not found"));
+        PaluwaganPackage pkg = packageRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
         pkg.setActive(false); packageRepo.save(pkg);
     }
 
     // --- Members ---
     public List<Member> getAllMembers() { return memberRepo.findAll(); }
+    public List<Member> getActiveMembers() { return memberRepo.findByStatus("ACTIVE"); }
     public List<Member> getPendingMembers() { return memberRepo.findByStatus("PENDING"); }
     public List<Member> getMembersByUser(Long userId) { return memberRepo.findByUserId(userId); }
 
@@ -48,14 +54,12 @@ public class PaluwaganService {
         return memberRepo.findById(id).orElseThrow(() -> new RuntimeException("Member not found"));
     }
 
-    // Customer applies for paluwagan
     public Member applyMember(Member member) {
         member.setStatus("PENDING");
         member.setAppliedAt(LocalDateTime.now());
         return memberRepo.save(member);
     }
 
-    // Admin adds member directly (auto-approved)
     public Member saveMember(Member member) {
         member.setStatus("ACTIVE");
         member.setApprovedAt(LocalDateTime.now());
@@ -65,9 +69,12 @@ public class PaluwaganService {
         return saved;
     }
 
-    // Admin approves member application
     public Member approveMember(Long id, String note) {
         Member member = getMemberById(id);
+        PaluwaganPackage pkg = member.getPaluwaganPackage();
+        int enrolled = getEnrolledCount(pkg.getId());
+        if (enrolled >= pkg.getMaxSlots())
+            throw new RuntimeException("Package is full. Max slots: " + pkg.getMaxSlots());
         member.setStatus("ACTIVE");
         member.setApprovedAt(LocalDateTime.now());
         member.setStartDate(LocalDate.now());
@@ -77,11 +84,9 @@ public class PaluwaganService {
         return saved;
     }
 
-    // Admin rejects member application
     public Member rejectMember(Long id, String note) {
         Member member = getMemberById(id);
-        member.setStatus("REJECTED");
-        member.setAdminNote(note);
+        member.setStatus("REJECTED"); member.setAdminNote(note);
         return memberRepo.save(member);
     }
 
@@ -97,10 +102,12 @@ public class PaluwaganService {
     private void generatePaymentSchedule(Member member) {
         PaluwaganPackage pkg = member.getPaluwaganPackage();
         List<Payment> payments = new ArrayList<>();
-        for (int week = 1; week <= pkg.getDurationWeeks(); week++) {
+        for (int i = 1; i <= pkg.getDurationWeeks(); i++) {
             Payment p = new Payment();
-            p.setMember(member); p.setWeekNumber(week); p.setAmount(pkg.getWeeklyAmount());
-            p.setDueDate(member.getStartDate().plusWeeks(week - 1));
+            p.setMember(member); p.setPeriodNumber(i);
+            p.setPeriodLabel("Week " + i);
+            p.setAmount(pkg.getWeeklyAmount());
+            p.setDueDate(member.getStartDate().plusWeeks(i - 1));
             p.setPaid(false); p.setApprovalStatus("PENDING");
             payments.add(p);
         }
@@ -109,6 +116,7 @@ public class PaluwaganService {
 
     // --- Payments ---
     public List<Payment> getAllPayments() { return paymentRepo.findAll(); }
+    public List<Payment> getPaidPayments() { return paymentRepo.findByPaidTrue(); }
     public List<Payment> getPaymentsByMember(Long memberId) { return paymentRepo.findByMemberId(memberId); }
     public List<Payment> getPaymentsByUser(Long userId) { return paymentRepo.findByMemberUserId(userId); }
     public List<Payment> getPendingPaymentApprovals() { return paymentRepo.findByApprovalStatus("SUBMITTED"); }
@@ -117,69 +125,54 @@ public class PaluwaganService {
         return paymentRepo.findById(id).orElseThrow(() -> new RuntimeException("Payment not found"));
     }
 
-    // Customer submits payment proof
-    public Payment submitPaymentProof(Long paymentId, String proofImageUrl,
-                                       String paymentMethod, String referenceNumber) {
-        Payment payment = getPaymentById(paymentId);
-        payment.setProofImageUrl(proofImageUrl);
-        payment.setPaymentMethod(paymentMethod);
-        payment.setReferenceNumber(referenceNumber);
-        payment.setApprovalStatus("SUBMITTED");
-        payment.setSubmittedAt(LocalDateTime.now());
-        return paymentRepo.save(payment);
+    public Payment submitPaymentProof(Long id, String proofUrl, String method, String ref) {
+        Payment p = getPaymentById(id);
+        p.setProofImageUrl(proofUrl); p.setPaymentMethod(method);
+        p.setReferenceNumber(ref); p.setApprovalStatus("SUBMITTED");
+        p.setSubmittedAt(LocalDateTime.now());
+        return paymentRepo.save(p);
     }
 
-    // Admin approves payment
-    public Payment approvePayment(Long paymentId, String note) {
-        Payment payment = getPaymentById(paymentId);
-        payment.setPaid(true);
-        payment.setPaidAt(LocalDateTime.now());
-        payment.setApprovalStatus("APPROVED");
-        payment.setAdminNote(note);
-        payment.setReceiptNumber(generateReceiptNumber(payment));
-        return paymentRepo.save(payment);
+    public Payment approvePayment(Long id, String note) {
+        Payment p = getPaymentById(id);
+        p.setPaid(true); p.setPaidAt(LocalDateTime.now());
+        p.setApprovalStatus("APPROVED"); p.setAdminNote(note);
+        p.setReceiptNumber(String.format("RCP-%05d-%s", p.getId(),
+                LocalDate.now().toString().replace("-", "")));
+        return paymentRepo.save(p);
     }
 
-    // Admin rejects payment
-    public Payment rejectPayment(Long paymentId, String note) {
-        Payment payment = getPaymentById(paymentId);
-        payment.setApprovalStatus("REJECTED");
-        payment.setAdminNote(note);
-        payment.setProofImageUrl(null);
-        return paymentRepo.save(payment);
+    public Payment rejectPayment(Long id, String note) {
+        Payment p = getPaymentById(id);
+        p.setApprovalStatus("REJECTED"); p.setAdminNote(note); p.setProofImageUrl(null);
+        return paymentRepo.save(p);
     }
 
-    public Payment markAsPaid(Long paymentId) {
-        Payment payment = getPaymentById(paymentId);
-        payment.setPaid(true); payment.setPaidAt(LocalDateTime.now());
-        payment.setApprovalStatus("APPROVED");
-        payment.setReceiptNumber(generateReceiptNumber(payment));
-        return paymentRepo.save(payment);
+    public Payment markAsPaid(Long id) {
+        Payment p = getPaymentById(id);
+        p.setPaid(true); p.setPaidAt(LocalDateTime.now()); p.setApprovalStatus("APPROVED");
+        p.setReceiptNumber(String.format("RCP-%05d-%s", p.getId(),
+                LocalDate.now().toString().replace("-", "")));
+        return paymentRepo.save(p);
     }
 
-    public Payment markAsUnpaid(Long paymentId) {
-        Payment payment = getPaymentById(paymentId);
-        payment.setPaid(false); payment.setPaidAt(null);
-        payment.setReceiptNumber(null); payment.setApprovalStatus("PENDING");
-        payment.setProofImageUrl(null);
-        return paymentRepo.save(payment);
+    public Payment markAsUnpaid(Long id) {
+        Payment p = getPaymentById(id);
+        p.setPaid(false); p.setPaidAt(null); p.setReceiptNumber(null);
+        p.setApprovalStatus("PENDING"); p.setProofImageUrl(null);
+        return paymentRepo.save(p);
     }
 
     public void deletePayment(Long id) { paymentRepo.deleteById(id); }
 
-    private String generateReceiptNumber(Payment payment) {
-        return String.format("RCP-%05d-%s", payment.getId(),
-                LocalDate.now().toString().replace("-", ""));
-    }
-
     // --- Payment Methods ---
     public List<PaymentMethod> getAllPaymentMethods() { return paymentMethodRepo.findAll(); }
     public List<PaymentMethod> getActivePaymentMethods() { return paymentMethodRepo.findByActiveTrue(); }
-
     public PaymentMethod savePaymentMethod(PaymentMethod pm) { return paymentMethodRepo.save(pm); }
 
     public PaymentMethod updatePaymentMethod(Long id, PaymentMethod updated) {
-        PaymentMethod pm = paymentMethodRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        PaymentMethod pm = paymentMethodRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
         pm.setName(updated.getName()); pm.setAccountNumber(updated.getAccountNumber());
         pm.setAccountName(updated.getAccountName()); pm.setInstructions(updated.getInstructions());
         pm.setIcon(updated.getIcon()); pm.setActive(updated.getActive());

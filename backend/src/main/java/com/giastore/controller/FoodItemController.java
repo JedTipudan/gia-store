@@ -17,6 +17,9 @@ public class FoodItemController {
     @GetMapping
     public List<FoodItem> getAll() { return service.getAll(); }
 
+    @GetMapping("/today")
+    public List<FoodItem> getToday() { return service.getTodaysMenu(); }
+
     @GetMapping("/{id}")
     public FoodItem getById(@PathVariable Long id) { return service.getById(id); }
 
@@ -27,6 +30,9 @@ public class FoodItemController {
     public FoodItem update(@PathVariable Long id, @RequestBody FoodItem item) {
         return service.update(id, item);
     }
+
+    @PatchMapping("/{id}/toggle-today")
+    public FoodItem toggleToday(@PathVariable Long id) { return service.toggleToday(id); }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {

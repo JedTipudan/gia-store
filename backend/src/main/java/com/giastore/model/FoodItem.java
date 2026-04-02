@@ -30,6 +30,9 @@ public class FoodItem {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @Column(nullable = false)
+    private Boolean availableToday = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

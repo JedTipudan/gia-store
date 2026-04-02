@@ -1,4 +1,4 @@
-version=1.0.0
+version=1.0.1
 download=https://github.com/JedTipudan/gia-store/releases/latest
 - Initial release of Gia Store
 - Dashboard with analytics

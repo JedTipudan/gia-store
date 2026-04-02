@@ -107,6 +107,23 @@ class _FoodScreenState extends State<FoodScreen> {
                                         style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white)),
                                   ),
                                 )),
+                              // Today badge
+                              Positioned(top: 8, left: 8,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    await ApiService.patch('/food-items/${item['id']}/toggle-today');
+                                    _load();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: (item['availableToday'] ?? false)
+                                          ? Colors.orange : Colors.black54,
+                                      borderRadius: BorderRadius.circular(9999)),
+                                    child: Text((item['availableToday'] ?? false) ? '☀ Today' : '+ Today',
+                                        style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  ),
+                                )),
                             ]),
                             Expanded(child: Padding(
                               padding: const EdgeInsets.all(10),
@@ -169,6 +186,7 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
   final _price = TextEditingController();
   final _stock = TextEditingController();
   bool _active = true, _loading = false, _uploading = false;
+  bool _availableToday = false;
   String _imageUrl = '';
   File? _pickedImage;
 
@@ -183,6 +201,7 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
       _stock.text = widget.item!['stock']?.toString() ?? '0';
       _imageUrl = widget.item!['imageUrl'] ?? '';
       _active = widget.item!['active'] ?? true;
+      _availableToday = widget.item!['availableToday'] ?? false;
     }
   }
 
@@ -235,7 +254,7 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
     final body = {
       'name': _name.text, 'description': _desc.text, 'category': _cat.text,
       'price': double.tryParse(_price.text) ?? 0, 'stock': int.tryParse(_stock.text) ?? 0,
-      'imageUrl': _imageUrl, 'active': _active,
+      'imageUrl': _imageUrl, 'active': _active, 'availableToday': _availableToday,
     };
     try {
       if (widget.item != null) await ApiService.put('/food-items/${widget.item!['id']}', body);
@@ -312,6 +331,14 @@ class _FoodFormScreenState extends State<_FoodFormScreen> {
             title: Text('Available for customers', style: GoogleFonts.outfit()),
             activeColor: const Color(0xFF16a34a),
             onChanged: (v) => setState(() => _active = v),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _availableToday,
+            title: Text('Show on Today\'s Menu ☀️', style: GoogleFonts.outfit()),
+            subtitle: Text('Customers will see this today', style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
+            activeColor: Colors.orange,
+            onChanged: (v) => setState(() => _availableToday = v),
           ),
         ]),
       ),
