@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: Image.asset('assets/logo.jpg', fit: BoxFit.cover)),
               const SizedBox(height: 12),
-              Text('Gia Store', style: GoogleFonts.outfit(fontSize: 20,
+              Text('Gia Foodies', style: GoogleFonts.outfit(fontSize: 20,
                   fontWeight: FontWeight.bold, color: Colors.white)),
               Text('Admin Panel', style: GoogleFonts.outfit(
                   fontSize: 12, color: Colors.white.withOpacity(0.8))),

@@ -206,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.store_rounded, color: Color(0xFF16a34a)),
-            title: Text('Gia Store', style: GoogleFonts.outfit()),
+            title: Text('Gia Foodies', style: GoogleFonts.outfit()),
             subtitle: Text('Paluwagan & Food Store System', style: GoogleFonts.outfit(fontSize: 12)),
           ),
         ])),

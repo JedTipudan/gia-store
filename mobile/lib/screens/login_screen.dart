@@ -11,40 +11,54 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tab;
+  // Login
   final _loginUser = TextEditingController();
   final _loginPass = TextEditingController();
+  bool _loginObscure = true;
+  // Register
+  final _regName = TextEditingController();
+  final _regPhone = TextEditingController();
   final _regUser = TextEditingController();
   final _regPass = TextEditingController();
   final _regConfirm = TextEditingController();
-  final _regName = TextEditingController();
-  final _regPhone = TextEditingController();
+  bool _regObscure = true;
+  bool _regConfirmObscure = true;
+
   bool _loading = false;
-  bool _obscure1 = true, _obscure2 = true, _obscure3 = true;
 
   @override
-  void initState() { super.initState(); _tab = TabController(length: 2, vsync: this); }
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+    _tab.addListener(() => setState(() {}));
+  }
+
   @override
   void dispose() { _tab.dispose(); super.dispose(); }
 
   Future<void> _login() async {
-    if (_loginUser.text.isEmpty || _loginPass.text.isEmpty) return;
+    if (_loginUser.text.isEmpty || _loginPass.text.isEmpty) {
+      showSnack(context, 'Please fill in all fields', error: true); return;
+    }
     setState(() => _loading = true);
-    final result = await AuthService.login(_loginUser.text.trim(), _loginPass.text.trim());
+    final result = await AuthService.login(
+        _loginUser.text.trim(), _loginPass.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
     if (result != null) {
-      final role = result['role'] ?? 'CUSTOMER';
       Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => role == 'ADMIN' ? const HomeScreen() : const CustomerHome()));
+          builder: (_) => result['role'] == 'ADMIN'
+              ? const HomeScreen() : const CustomerHome()));
     } else {
       showSnack(context, 'Invalid username or password', error: true);
     }
   }
 
   Future<void> _register() async {
-    if (_regUser.text.isEmpty || _regPass.text.isEmpty || _regName.text.isEmpty) {
+    if (_regName.text.isEmpty || _regUser.text.isEmpty || _regPass.text.isEmpty) {
       showSnack(context, 'Please fill in all required fields', error: true); return;
     }
     if (_regPass.text != _regConfirm.text) {
@@ -54,66 +68,89 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       showSnack(context, 'Password must be at least 6 characters', error: true); return;
     }
     setState(() => _loading = true);
-    final ok = await AuthService.register(
-        _regUser.text.trim(), _regPass.text.trim(),
-        _regName.text.trim(), _regPhone.text.trim());
+    final ok = await AuthService.register(_regUser.text.trim(),
+        _regPass.text.trim(), _regName.text.trim(), _regPhone.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
-      showSnack(context, 'Account created! Please login.');
+      showSnack(context, '🎉 Account created! Please login.');
       _tab.animateTo(0);
     } else {
-      showSnack(context, 'Username already exists. Try another.', error: true);
+      showSnack(context, 'Username already taken. Try another.', error: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FDF4),
-      body: SafeArea(
-        child: Center(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A2E14), Color(0xFF0F3D1A)],
+            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(children: [
-              Container(
-                width: 88, height: 88,
-                decoration: BoxDecoration(color: Colors.white,
+              const SizedBox(height: 32),
+              // Logo
+              Hero(tag: 'logo',
+                child: Container(
+                  width: 90, height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10, offset: const Offset(0, 4))]),
-                clipBehavior: Clip.antiAlias,
-                child: Image.asset('assets/logo.jpg', fit: BoxFit.cover),
-              ),
-              const SizedBox(height: 14),
-              Text('Gia Store', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold)),
-              Text('Paluwagan & Food Store System',
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600])),
-              const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06),
-                        blurRadius: 10, offset: const Offset(0, 4))]),
-                child: Column(children: [
-                  TabBar(
-                    controller: _tab,
-                    labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                    unselectedLabelStyle: GoogleFonts.outfit(),
-                    indicatorColor: const Color(0xFF16a34a),
-                    labelColor: const Color(0xFF16a34a),
-                    unselectedLabelColor: Colors.grey,
-                    tabs: const [Tab(text: 'Login'), Tab(text: 'Register')],
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3),
+                        blurRadius: 20, offset: const Offset(0, 8))],
                   ),
-                  SizedBox(
-                    height: _tab.index == 0 ? 220 : 380,
-                    child: TabBarView(controller: _tab, children: [
-                      _loginForm(),
-                      _registerForm(),
-                    ]),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset('assets/logo.jpg', fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Gia Foodies', style: GoogleFonts.outfit(
+                  fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text('Paluwagan & Food Store', style: GoogleFonts.outfit(
+                  fontSize: 13, color: Colors.white.withOpacity(0.6))),
+              const SizedBox(height: 32),
+
+              // Card
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30, offset: const Offset(0, 10))],
+                ),
+                child: Column(children: [
+                  // Tab bar
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    child: TabBar(
+                      controller: _tab,
+                      labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15),
+                      unselectedLabelStyle: GoogleFonts.outfit(fontSize: 15),
+                      indicatorColor: const Color(0xFF16a34a),
+                      indicatorWeight: 3,
+                      labelColor: const Color(0xFF16a34a),
+                      unselectedLabelColor: Colors.grey,
+                      tabs: const [Tab(text: 'Sign In'), Tab(text: 'Register')],
+                    ),
+                  ),
+                  // Forms
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: IndexedStack(
+                      index: _tab.index,
+                      children: [_loginForm(), _registerForm()],
+                    ),
                   ),
                 ]),
               ),
+              const SizedBox(height: 32),
             ]),
           ),
         ),
@@ -122,66 +159,96 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Widget _loginForm() => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(children: [
-      _field(_loginUser, 'Username', Icons.person_outline),
-      const SizedBox(height: 12),
-      _passField(_loginPass, 'Password', _obscure1, () => setState(() => _obscure1 = !_obscure1)),
-      const SizedBox(height: 20),
-      _submitBtn('Sign In', _login),
+    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      _input(_loginUser, 'Username', Icons.person_outline),
+      const SizedBox(height: 14),
+      _passwordInput(_loginPass, 'Password', _loginObscure,
+          () => setState(() => _loginObscure = !_loginObscure)),
+      const SizedBox(height: 24),
+      SizedBox(width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _login,
+          child: _loading
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Sign In', style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
+        )),
     ]),
   );
 
   Widget _registerForm() => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(children: [
-      _field(_regName, 'Full Name *', Icons.badge_outlined),
-      const SizedBox(height: 10),
-      _field(_regPhone, 'Phone Number', Icons.phone_outlined, type: TextInputType.phone),
-      const SizedBox(height: 10),
-      _field(_regUser, 'Username *', Icons.person_outline),
-      const SizedBox(height: 10),
-      _passField(_regPass, 'Password *', _obscure2, () => setState(() => _obscure2 = !_obscure2)),
-      const SizedBox(height: 10),
-      _passField(_regConfirm, 'Confirm Password *', _obscure3, () => setState(() => _obscure3 = !_obscure3)),
-      const SizedBox(height: 16),
-      _submitBtn('Create Account', _register),
+    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      _input(_regName, 'Full Name *', Icons.badge_outlined),
+      const SizedBox(height: 12),
+      _input(_regPhone, 'Phone Number', Icons.phone_outlined,
+          type: TextInputType.phone),
+      const SizedBox(height: 12),
+      _input(_regUser, 'Username *', Icons.alternate_email),
+      const SizedBox(height: 12),
+      _passwordInput(_regPass, 'Password *', _regObscure,
+          () => setState(() => _regObscure = !_regObscure)),
+      const SizedBox(height: 12),
+      _passwordInput(_regConfirm, 'Confirm Password *', _regConfirmObscure,
+          () => setState(() => _regConfirmObscure = !_regConfirmObscure)),
+      const SizedBox(height: 24),
+      SizedBox(width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _register,
+          child: _loading
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Create Account', style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
+        )),
     ]),
   );
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon,
+  Widget _input(TextEditingController ctrl, String label, IconData icon,
       {TextInputType type = TextInputType.text}) =>
-      TextField(controller: ctrl, keyboardType: type,
-          decoration: InputDecoration(labelText: label, labelStyle: GoogleFonts.outfit(),
-              prefixIcon: Icon(icon, color: const Color(0xFF16a34a), size: 20),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          style: GoogleFonts.outfit());
+      TextField(
+        controller: ctrl, keyboardType: type,
+        style: GoogleFonts.outfit(fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: const Color(0xFF16a34a), size: 20),
+          filled: true,
+          fillColor: const Color(0xFFF0F7F0),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
+          labelStyle: GoogleFonts.outfit(color: Colors.grey[600]),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      );
 
-  Widget _passField(TextEditingController ctrl, String label, bool obscure, VoidCallback toggle) =>
-      TextField(controller: ctrl, obscureText: obscure,
-          decoration: InputDecoration(labelText: label, labelStyle: GoogleFonts.outfit(),
-              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF16a34a), size: 20),
-              suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: toggle),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
-          style: GoogleFonts.outfit());
-
-  Widget _submitBtn(String label, VoidCallback onTap) => SizedBox(
-    width: double.infinity, height: 46,
-    child: ElevatedButton(
-      onPressed: _loading ? null : onTap,
-      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-      child: _loading ? const SizedBox(width: 18, height: 18,
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-          : Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-    ),
-  );
+  Widget _passwordInput(TextEditingController ctrl, String label,
+      bool obscure, VoidCallback toggle) =>
+      TextField(
+        controller: ctrl,
+        obscureText: obscure,
+        style: GoogleFonts.outfit(fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.lock_outline,
+              color: Color(0xFF16a34a), size: 20),
+          suffixIcon: IconButton(
+            icon: Icon(obscure ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+                color: Colors.grey[500], size: 20),
+            onPressed: toggle,
+          ),
+          filled: true,
+          fillColor: const Color(0xFFF0F7F0),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
+          labelStyle: GoogleFonts.outfit(color: Colors.grey[600]),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      );
 }

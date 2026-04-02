@@ -71,7 +71,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                   clipBehavior: Clip.antiAlias,
                   child: Image.asset('assets/logo.jpg', fit: BoxFit.cover)),
                 const SizedBox(height: 12),
-                Text('Gia Store', style: GoogleFonts.outfit(fontSize: 18,
+                Text('Gia Foodies', style: GoogleFonts.outfit(fontSize: 18,
                     fontWeight: FontWeight.bold, color: Colors.white)),
                 Text('Customer Portal', style: GoogleFonts.outfit(
                     fontSize: 12, color: Colors.white.withOpacity(0.7))),

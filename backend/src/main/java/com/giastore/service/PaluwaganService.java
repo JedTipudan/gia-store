@@ -34,7 +34,8 @@ public class PaluwaganService {
                 .orElseThrow(() -> new RuntimeException("Package not found"));
         pkg.setName(updated.getName()); pkg.setDescription(updated.getDescription());
         pkg.setWeeklyAmount(updated.getWeeklyAmount()); pkg.setDurationWeeks(updated.getDurationWeeks());
-        pkg.setMaxSlots(updated.getMaxSlots()); pkg.setActive(updated.getActive());
+        pkg.setMaxSlots(updated.getMaxSlots()); pkg.setImageUrl(updated.getImageUrl());
+        pkg.setActive(updated.getActive());
         return packageRepo.save(pkg);
     }
 

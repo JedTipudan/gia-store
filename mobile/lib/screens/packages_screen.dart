@@ -1,9 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../services/api_service.dart';
 import '../utils/formatters.dart';
+import '../utils/image_utils.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/food_image.dart';
 
 class PackagesScreen extends StatefulWidget {
   const PackagesScreen({super.key});
@@ -25,25 +31,27 @@ class _PackagesScreenState extends State<PackagesScreen> {
       final res = await ApiService.get('/paluwagan/packages');
       if (res.statusCode == 200) {
         final packages = jsonDecode(res.body) as List;
-        // Load enrolled counts for each package
         final counts = <int, int>{};
         for (final pkg in packages) {
-          final cRes = await ApiService.get('/paluwagan/packages/${pkg['id']}/enrolled-count');
+          final cRes = await ApiService.get(
+              '/paluwagan/packages/${pkg['id']}/enrolled-count');
           if (cRes.statusCode == 200) {
-            counts[pkg['id'] as int] = jsonDecode(cRes.body)['enrolled'] as int;
+            counts[pkg['id'] as int] =
+                jsonDecode(cRes.body)['enrolled'] as int;
           }
         }
-        setState(() { _packages = packages; _enrolledCounts = counts; _loading = false; });
+        setState(() {
+          _packages = packages;
+          _enrolledCounts = counts;
+          _loading = false;
+        });
       }
     } catch (_) { setState(() => _loading = false); }
   }
 
   void _openForm([Map? pkg]) async {
-    final result = await showModalBottomSheet(
-      context: context, isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _PackageForm(pkg: pkg),
-    );
+    final result = await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => _PackageFormScreen(pkg: pkg)));
     if (result == true && mounted) {
       showSnack(context, pkg != null ? 'Package updated!' : 'Package created!');
       _load();
@@ -55,87 +63,24 @@ class _PackagesScreenState extends State<PackagesScreen> {
     if (!ok || !mounted) return;
     final res = await ApiService.delete('/paluwagan/packages/${pkg['id']}');
     if (!mounted) return;
-    if (res.statusCode == 200) { showSnack(context, 'Package deactivated'); _load(); }
-    else showSnack(context, 'Cannot delete — members may be enrolled', error: true);
+    if (res.statusCode == 200) { showSnack(context, 'Package deleted'); _load(); }
+    else showSnack(context, 'Cannot delete — active members enrolled', error: true);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _loading ? const Center(child: CircularProgressIndicator())
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: _packages.isEmpty
-                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[300]),
-                      const SizedBox(height: 12),
-                      Text('No packages yet', style: GoogleFonts.outfit(color: Colors.grey)),
-                    ]))
+                  ? _emptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: _packages.length,
-                      itemBuilder: (_, i) {
-                        final pkg = _packages[i];
-                        final enrolled = _enrolledCounts[pkg['id'] as int] ?? 0;
-                        final maxSlots = pkg['maxSlots'] ?? 10;
-                        final total = (pkg['weeklyAmount'] ?? 0) * (pkg['durationWeeks'] ?? 0);
-                        final isFull = enrolled >= maxSlots;
-                        final slotProgress = maxSlots > 0 ? enrolled / maxSlots : 0.0;
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                Expanded(child: Text(pkg['name'] ?? '',
-                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16))),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: pkg['active'] == true ? const Color(0xFFDCFCE7) : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(9999)),
-                                  child: Text(pkg['active'] == true ? 'Active' : 'Inactive',
-                                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600,
-                                          color: pkg['active'] == true ? const Color(0xFF16a34a) : Colors.grey))),
-                              ]),
-                              if ((pkg['description'] ?? '').toString().isNotEmpty)
-                                Padding(padding: const EdgeInsets.only(top: 4),
-                                  child: Text(pkg['description'], style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey))),
-                              const SizedBox(height: 12),
-                              // Info chips
-                              Wrap(spacing: 8, runSpacing: 6, children: [
-                                _chip('${formatPeso(pkg['weeklyAmount'])}/week', Icons.payments_outlined, const Color(0xFF16a34a)),
-                                _chip('${pkg['durationWeeks']} weeks', Icons.calendar_today, const Color(0xFF2563eb)),
-                                _chip('Total: ${formatPeso(total)}', Icons.account_balance_wallet, const Color(0xFF7c3aed)),
-                              ]),
-                              const SizedBox(height: 12),
-                              // Slots progress
-                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                Text('Slots', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600)),
-                                Text('$enrolled / $maxSlots ${isFull ? "• FULL" : "available"}',
-                                    style: GoogleFonts.outfit(fontSize: 12,
-                                        color: isFull ? Colors.red : const Color(0xFF16a34a),
-                                        fontWeight: FontWeight.w600)),
-                              ]),
-                              const SizedBox(height: 6),
-                              ClipRRect(borderRadius: BorderRadius.circular(9999),
-                                child: LinearProgressIndicator(
-                                  value: slotProgress.clamp(0.0, 1.0), minHeight: 8,
-                                  backgroundColor: Colors.grey[100],
-                                  valueColor: AlwaysStoppedAnimation(isFull ? Colors.red : const Color(0xFF16a34a)))),
-                              const SizedBox(height: 12),
-                              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                _actionBtn('Edit', Icons.edit, const Color(0xFFDBEAFE), const Color(0xFF2563eb),
-                                    () => _openForm(Map<String, dynamic>.from(pkg))),
-                                const SizedBox(width: 8),
-                                _actionBtn('Delete', Icons.delete, const Color(0xFFFEE2E2), Colors.red,
-                                    () => _delete(pkg)),
-                              ]),
-                            ]),
-                          ),
-                        );
-                      }),
+                      itemBuilder: (_, i) => _packageCard(_packages[i]),
+                    ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(),
@@ -148,38 +93,167 @@ class _PackagesScreenState extends State<PackagesScreen> {
     );
   }
 
-  Widget _chip(String label, IconData icon, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: color), const SizedBox(width: 4),
-      Text(label, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+  Widget _emptyState() => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.inventory_2_outlined, size: 72, color: Colors.grey[300]),
+      const SizedBox(height: 16),
+      Text('No packages yet', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16)),
+      const SizedBox(height: 8),
+      Text('Tap + to create your first package',
+          style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
     ]));
 
-  Widget _actionBtn(String label, IconData icon, Color bg, Color color, VoidCallback onTap) =>
+  Widget _packageCard(Map pkg) {
+    final enrolled = _enrolledCounts[pkg['id'] as int] ?? 0;
+    final maxSlots = pkg['maxSlots'] ?? 10;
+    final slotsLeft = maxSlots - enrolled;
+    final isFull = slotsLeft <= 0;
+    final total = (pkg['weeklyAmount'] ?? 0) * (pkg['durationWeeks'] ?? 0);
+    final progress = maxSlots > 0 ? (enrolled / maxSlots).clamp(0.0, 1.0) : 0.0;
+    final isActive = pkg['active'] ?? true;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06),
+            blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Package image
+        Stack(children: [
+          FoodImage(
+            imageUrl: pkg['imageUrl'],
+            height: 160, width: double.infinity,
+            placeholder: Container(
+              height: 160,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0A2E14), Color(0xFF16a34a)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              child: Center(child: Icon(Icons.inventory_2_rounded,
+                  size: 56, color: Colors.white.withOpacity(0.4))),
+            ),
+          ),
+          // Status badge
+          Positioned(top: 12, right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isActive ? const Color(0xFF16a34a) : Colors.grey[600],
+                borderRadius: BorderRadius.circular(9999)),
+              child: Text(isActive ? 'Active' : 'Inactive',
+                  style: GoogleFonts.outfit(fontSize: 11,
+                      fontWeight: FontWeight.w600, color: Colors.white)),
+            )),
+          // Full badge
+          if (isFull)
+            Positioned(top: 12, left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: Colors.red,
+                    borderRadius: BorderRadius.circular(9999)),
+                child: Text('FULL', style: GoogleFonts.outfit(
+                    fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+              )),
+        ]),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(pkg['name'] ?? '', style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold, fontSize: 18)),
+            if ((pkg['description'] ?? '').toString().isNotEmpty)
+              Padding(padding: const EdgeInsets.only(top: 4),
+                child: Text(pkg['description'], style: GoogleFonts.outfit(
+                    fontSize: 13, color: Colors.grey))),
+            const SizedBox(height: 14),
+            // Stats row
+            Row(children: [
+              _statChip(Icons.payments_outlined,
+                  '${formatPeso(pkg['weeklyAmount'])}/wk', const Color(0xFF16a34a)),
+              const SizedBox(width: 8),
+              _statChip(Icons.calendar_today,
+                  '${pkg['durationWeeks']} wks', const Color(0xFF2563eb)),
+              const SizedBox(width: 8),
+              _statChip(Icons.account_balance_wallet_outlined,
+                  formatPeso(total), const Color(0xFF7c3aed)),
+            ]),
+            const SizedBox(height: 14),
+            // Slots
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Slots', style: GoogleFonts.outfit(
+                  fontSize: 13, fontWeight: FontWeight.w600)),
+              Text('$enrolled / $maxSlots${isFull ? " • FULL" : ""}',
+                  style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600,
+                      color: isFull ? Colors.red : const Color(0xFF16a34a))),
+            ]),
+            const SizedBox(height: 6),
+            ClipRRect(borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: progress, minHeight: 8,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation(
+                    isFull ? Colors.red : const Color(0xFF16a34a)))),
+            const SizedBox(height: 14),
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              _actionBtn('Edit', Icons.edit_outlined,
+                  const Color(0xFFDBEAFE), const Color(0xFF2563eb),
+                  () => _openForm(Map<String, dynamic>.from(pkg))),
+              const SizedBox(width: 8),
+              _actionBtn('Delete', Icons.delete_outline,
+                  const Color(0xFFFEE2E2), Colors.red, () => _delete(pkg)),
+            ]),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _statChip(IconData icon, String label, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10)),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 13, color: color), const SizedBox(width: 4),
+      Text(label, style: GoogleFonts.outfit(
+          fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+    ]));
+
+  Widget _actionBtn(String label, IconData icon, Color bg, Color color,
+      VoidCallback onTap) =>
       GestureDetector(onTap: onTap,
-        child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 13, color: color), const SizedBox(width: 4),
-            Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+            Icon(icon, size: 14, color: color), const SizedBox(width: 6),
+            Text(label, style: GoogleFonts.outfit(
+                fontSize: 13, fontWeight: FontWeight.w600, color: color)),
           ])));
 }
 
-class _PackageForm extends StatefulWidget {
+// ─── Package Form Screen ─────────────────────────────────────────────────────
+
+class _PackageFormScreen extends StatefulWidget {
   final Map? pkg;
-  const _PackageForm({this.pkg});
+  const _PackageFormScreen({this.pkg});
   @override
-  State<_PackageForm> createState() => _PackageFormState();
+  State<_PackageFormScreen> createState() => _PackageFormScreenState();
 }
 
-class _PackageFormState extends State<_PackageForm> {
+class _PackageFormScreenState extends State<_PackageFormScreen> {
   final _name = TextEditingController();
   final _desc = TextEditingController();
   final _amount = TextEditingController();
   final _weeks = TextEditingController();
   final _slots = TextEditingController();
-  bool _active = true, _loading = false;
+  bool _active = true;
+  bool _loading = false;
+  bool _uploading = false;
+  String _imageUrl = '';
+  File? _pickedImage;
 
   @override
   void initState() {
@@ -190,9 +264,62 @@ class _PackageFormState extends State<_PackageForm> {
       _amount.text = widget.pkg!['weeklyAmount']?.toString() ?? '';
       _weeks.text = widget.pkg!['durationWeeks']?.toString() ?? '';
       _slots.text = widget.pkg!['maxSlots']?.toString() ?? '10';
+      _imageUrl = widget.pkg!['imageUrl'] ?? '';
       _active = widget.pkg!['active'] ?? true;
     } else {
       _slots.text = '10';
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const SizedBox(height: 12),
+        Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 16),
+        ListTile(leading: const Icon(Icons.photo_library_rounded,
+            color: Color(0xFF16a34a)),
+            title: Text('Choose from Gallery', style: GoogleFonts.outfit()),
+            onTap: () => Navigator.pop(context, ImageSource.gallery)),
+        ListTile(leading: const Icon(Icons.camera_alt_rounded,
+            color: Color(0xFF16a34a)),
+            title: Text('Take a Photo', style: GoogleFonts.outfit()),
+            onTap: () => Navigator.pop(context, ImageSource.camera)),
+        const SizedBox(height: 8),
+      ])));
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+        source: source, imageQuality: 75, maxWidth: 800);
+    if (picked == null) return;
+
+    setState(() { _pickedImage = File(picked.path); _uploading = true; });
+    try {
+      final token = await ApiService.getToken();
+      final request = http.MultipartRequest('POST',
+          Uri.parse('https://gia-store-production.up.railway.app/api/upload/image'));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('file', picked.path,
+          contentType: MediaType('image', 'jpeg')));
+      final response = await request.send();
+      final body = await response.stream.bytesToString();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(body);
+        setState(() { _imageUrl = data['url']; _uploading = false; });
+        if (mounted) showSnack(context, 'Image uploaded ✓');
+      } else {
+        setState(() => _uploading = false);
+        if (mounted) showSnack(context, 'Upload failed', error: true);
+      }
+    } catch (_) {
+      setState(() => _uploading = false);
+      if (mounted) showSnack(context, 'Upload error', error: true);
     }
   }
 
@@ -204,66 +331,141 @@ class _PackageFormState extends State<_PackageForm> {
       'weeklyAmount': double.tryParse(_amount.text) ?? 0,
       'durationWeeks': int.tryParse(_weeks.text) ?? 0,
       'maxSlots': int.tryParse(_slots.text) ?? 10,
-      'active': _active,
+      'imageUrl': _imageUrl, 'active': _active,
     };
     try {
-      if (widget.pkg != null) await ApiService.put('/paluwagan/packages/${widget.pkg!['id']}', body);
-      else await ApiService.post('/paluwagan/packages', body);
+      if (widget.pkg != null) {
+        await ApiService.put('/paluwagan/packages/${widget.pkg!['id']}', body);
+      } else {
+        await ApiService.post('/paluwagan/packages', body);
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (_) { setState(() => _loading = false); }
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = (double.tryParse(_amount.text) ?? 0) * (int.tryParse(_weeks.text) ?? 0);
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
-      child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(widget.pkg != null ? 'Edit Package' : 'Add Package',
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        ]),
-        const SizedBox(height: 8),
-        _f(_name, 'Package Name *'),
-        _f(_desc, 'Description'),
-        Row(children: [
-          Expanded(child: _f(_amount, 'Weekly Amount (₱) *', type: TextInputType.number)),
-          const SizedBox(width: 12),
-          Expanded(child: _f(_weeks, 'Duration (weeks) *', type: TextInputType.number)),
-        ]),
-        _f(_slots, 'Max Slots (how many members allowed)', type: TextInputType.number),
-        if (total > 0)
-          Container(width: double.infinity, padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(10)),
-            child: Text('Total Package Value: ${formatPeso(total)}',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: const Color(0xFF16a34a)))),
-        SwitchListTile(value: _active, contentPadding: EdgeInsets.zero,
-            title: Text('Active', style: GoogleFonts.outfit()),
+    final total = (double.tryParse(_amount.text) ?? 0) *
+        (int.tryParse(_weeks.text) ?? 0);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.pkg != null ? 'Edit Package' : 'New Package',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        actions: [
+          TextButton(
+            onPressed: _loading || _uploading ? null : _save,
+            child: _loading
+                ? const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(widget.pkg != null ? 'Update' : 'Save',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600,
+                        color: const Color(0xFF16a34a))),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Image
+          GestureDetector(
+            onTap: _uploading ? null : _pickImage,
+            child: Container(
+              width: double.infinity, height: 180,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: _imageUrl.isNotEmpty
+                        ? const Color(0xFF16a34a) : Colors.grey[300]!,
+                    width: _imageUrl.isNotEmpty ? 2 : 1)),
+              clipBehavior: Clip.antiAlias,
+              child: _uploading
+                  ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const CircularProgressIndicator(color: Color(0xFF16a34a)),
+                      const SizedBox(height: 10),
+                      Text('Uploading...', style: GoogleFonts.outfit(color: Colors.grey)),
+                    ])
+                  : _pickedImage != null
+                      ? Image.file(_pickedImage!, fit: BoxFit.cover)
+                      : _imageUrl.isNotEmpty
+                          ? FoodImage(imageUrl: _imageUrl,
+                              height: 180, width: double.infinity)
+                          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.add_photo_alternate_outlined,
+                                  size: 48, color: Color(0xFF16a34a)),
+                              const SizedBox(height: 8),
+                              Text('Add Package Photo',
+                                  style: GoogleFonts.outfit(color: Colors.grey)),
+                              Text('Gallery or Camera',
+                                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
+                            ]),
+            ),
+          ),
+          Center(child: TextButton.icon(
+            onPressed: _uploading ? null : _pickImage,
+            icon: const Icon(Icons.add_photo_alternate_rounded,
+                color: Color(0xFF16a34a)),
+            label: Text(_imageUrl.isEmpty ? 'Add Photo' : 'Change Photo',
+                style: GoogleFonts.outfit(color: const Color(0xFF16a34a),
+                    fontWeight: FontWeight.w600)),
+          )),
+          const SizedBox(height: 8),
+          _field(_name, 'Package Name *'),
+          _field(_desc, 'Description'),
+          Row(children: [
+            Expanded(child: _field(_amount, 'Weekly Amount (₱) *',
+                type: TextInputType.number)),
+            const SizedBox(width: 12),
+            Expanded(child: _field(_weeks, 'Duration (weeks) *',
+                type: TextInputType.number)),
+          ]),
+          _field(_slots, 'Max Slots (members allowed)',
+              type: TextInputType.number),
+          if (total > 0)
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF16a34a).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF16a34a).withOpacity(0.2))),
+              child: Row(children: [
+                const Icon(Icons.account_balance_wallet_outlined,
+                    color: Color(0xFF16a34a), size: 18),
+                const SizedBox(width: 8),
+                Text('Total Package Value: ${formatPeso(total)}',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600,
+                        color: const Color(0xFF16a34a))),
+              ])),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _active,
+            title: Text('Active (visible to customers)',
+                style: GoogleFonts.outfit()),
             activeColor: const Color(0xFF16a34a),
-            onChanged: (v) => setState(() => _active = v)),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, height: 46,
-          child: ElevatedButton(onPressed: _loading ? null : _save,
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: _loading ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                : Text(widget.pkg != null ? 'Update' : 'Create',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600)))),
-        const SizedBox(height: 20),
-      ])),
+            onChanged: (v) => setState(() => _active = v),
+          ),
+          const SizedBox(height: 20),
+        ]),
+      ),
     );
   }
 
-  Widget _f(TextEditingController c, String l, {TextInputType type = TextInputType.text}) =>
-      Padding(padding: const EdgeInsets.only(bottom: 10),
-        child: TextField(controller: c, keyboardType: type, onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(labelText: l, labelStyle: GoogleFonts.outfit(),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-            style: GoogleFonts.outfit()));
+  Widget _field(TextEditingController c, String label,
+      {TextInputType type = TextInputType.text}) =>
+      Padding(padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(controller: c, keyboardType: type,
+            onChanged: (_) => setState(() {}),
+            style: GoogleFonts.outfit(),
+            decoration: InputDecoration(
+              labelText: label, labelStyle: GoogleFonts.outfit(),
+              filled: true,
+              fillColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E2E20) : const Color(0xFFF4F7F4),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            )));
 }

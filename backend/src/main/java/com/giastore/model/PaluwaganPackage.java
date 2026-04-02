@@ -26,6 +26,8 @@ public class PaluwaganPackage {
     @Column(nullable = false)
     private Integer maxSlots = 10;
 
+    private String imageUrl;
+
     @Column(nullable = false)
     private Boolean active = true;
 }
