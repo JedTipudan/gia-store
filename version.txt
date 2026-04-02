@@ -1,8 +1,8 @@
-version=1.0.4
+version=1.1.0
 download=https://github.com/JedTipudan/gia-store/releases/latest
-- Renamed to Gia Foodies
-- Professional redesign with animations
-- Fixed register password visibility
-- Fixed FAB overlap on navigation
-- Package images support
-- Improved login/register UI
+- Fixed approve member error
+- 1 paluwagan per customer rule
+- Payment tracker with progress
+- Pay directly from My Paluwagan tab
+- Package images visible to customers
+- Food menu available after enrollment
