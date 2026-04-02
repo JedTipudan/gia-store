@@ -4,10 +4,7 @@ import 'api_service.dart';
 
 class AuthService {
   static Future<bool> login(String username, String password) async {
-    final res = await ApiService.post('/auth/login', {
-      'username': username,
-      'password': password,
-    });
+    final res = await ApiService.post('/auth/login', {'username': username, 'password': password});
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
       final prefs = await SharedPreferences.getInstance();
@@ -16,6 +13,11 @@ class AuthService {
       return true;
     }
     return false;
+  }
+
+  static Future<bool> register(String username, String password) async {
+    final res = await ApiService.post('/auth/register', {'username': username, 'password': password});
+    return res.statusCode == 200 || res.statusCode == 201;
   }
 
   static Future<void> logout() async {

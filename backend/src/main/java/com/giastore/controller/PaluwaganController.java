@@ -49,6 +49,12 @@ public class PaluwaganController {
         return service.updateMember(id, member);
     }
 
+    @DeleteMapping("/members/{id}")
+    public ResponseEntity<?> deleteMember(@PathVariable Long id) {
+        service.deleteMember(id);
+        return ResponseEntity.ok().build();
+    }
+
     // Payments
     @GetMapping("/payments")
     public List<Payment> getAllPayments() { return service.getAllPayments(); }
@@ -63,4 +69,10 @@ public class PaluwaganController {
 
     @PatchMapping("/payments/{id}/unpay")
     public Payment markAsUnpaid(@PathVariable Long id) { return service.markAsUnpaid(id); }
+
+    @DeleteMapping("/payments/{id}")
+    public ResponseEntity<?> deletePayment(@PathVariable Long id) {
+        service.deletePayment(id);
+        return ResponseEntity.ok().build();
+    }
 }

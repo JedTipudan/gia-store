@@ -104,6 +104,14 @@ public class PaluwaganService {
         return paymentRepo.save(payment);
     }
 
+    public void deleteMember(Long id) {
+        memberRepo.deleteById(id);
+    }
+
+    public void deletePayment(Long id) {
+        paymentRepo.deleteById(id);
+    }
+
     private String generateReceiptNumber(Payment payment) {
         return String.format("RCP-%05d-%s", payment.getId(),
                 LocalDate.now().toString().replace("-", ""));

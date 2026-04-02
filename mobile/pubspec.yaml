@@ -1,5 +1,5 @@
 name: gia_store
-description: Paluwagan Food Store Manager
+description: Gia Store - Paluwagan & Food Store System
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -15,6 +15,7 @@ dependencies:
   intl: ^0.20.0
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.2
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../widgets/dialogs.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -9,25 +10,48 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _userCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+  late TabController _tab;
+  final _loginUser = TextEditingController();
+  final _loginPass = TextEditingController();
+  final _regUser = TextEditingController();
+  final _regPass = TextEditingController();
+  final _regConfirm = TextEditingController();
   bool _loading = false;
-  bool _obscure = true;
+  bool _obscure1 = true, _obscure2 = true, _obscure3 = true;
+
+  @override
+  void initState() { super.initState(); _tab = TabController(length: 2, vsync: this); }
+  @override
+  void dispose() { _tab.dispose(); super.dispose(); }
 
   Future<void> _login() async {
-    if (_userCtrl.text.isEmpty || _passCtrl.text.isEmpty) return;
+    if (_loginUser.text.isEmpty || _loginPass.text.isEmpty) return;
     setState(() => _loading = true);
-    final ok = await AuthService.login(_userCtrl.text.trim(), _passCtrl.text.trim());
+    final ok = await AuthService.login(_loginUser.text.trim(), _loginPass.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid username or password'),
-            backgroundColor: Colors.red));
+      showSnack(context, 'Invalid username or password', error: true);
+    }
+  }
+
+  Future<void> _register() async {
+    if (_regUser.text.isEmpty || _regPass.text.isEmpty) return;
+    if (_regPass.text != _regConfirm.text) {
+      showSnack(context, 'Passwords do not match', error: true); return;
+    }
+    setState(() => _loading = true);
+    final ok = await AuthService.register(_regUser.text.trim(), _regPass.text.trim());
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (ok) {
+      showSnack(context, 'Account created! Please login.');
+      _tab.animateTo(0);
+    } else {
+      showSnack(context, 'Registration failed. Username may already exist.', error: true);
     }
   }
 
@@ -39,93 +63,114 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 80, height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF16a34a),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(Icons.store_rounded, size: 44, color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                Text('Gia Store',
-                    style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('Sign in to manage your store',
-                    style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600])),
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+            child: Column(children: [
+              Container(
+                width: 88, height: 88,
+                decoration: BoxDecoration(color: const Color(0xFF16a34a),
+                    borderRadius: BorderRadius.circular(24)),
+                child: Stack(alignment: Alignment.center, children: [
+                  const Icon(Icons.storefront_rounded, size: 50, color: Colors.white),
+                  Positioned(bottom: 10, right: 10,
+                    child: Container(width: 26, height: 26,
+                      decoration: const BoxDecoration(color: Color(0xFFfbbf24), shape: BoxShape.circle),
+                      child: const Icon(Icons.currency_exchange, size: 14, color: Colors.white))),
+                ]),
+              ),
+              const SizedBox(height: 14),
+              Text('Gia Store', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('Paluwagan & Food Store System',
+                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600])),
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06),
-                        blurRadius: 10, offset: const Offset(0, 4))],
+                        blurRadius: 10, offset: const Offset(0, 4))]),
+                child: Column(children: [
+                  TabBar(
+                    controller: _tab,
+                    labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: GoogleFonts.outfit(),
+                    indicatorColor: const Color(0xFF16a34a),
+                    labelColor: const Color(0xFF16a34a),
+                    unselectedLabelColor: Colors.grey,
+                    tabs: const [Tab(text: 'Login'), Tab(text: 'Register')],
                   ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _userCtrl,
-                        decoration: _inputDec('Username', Icons.person_outline),
-                        style: GoogleFonts.outfit(),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passCtrl,
-                        obscureText: _obscure,
-                        decoration: _inputDec('Password', Icons.lock_outline).copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                            onPressed: () => setState(() => _obscure = !_obscure),
-                          ),
-                        ),
-                        style: GoogleFonts.outfit(),
-                        onSubmitted: (_) => _login(),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF16a34a),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: _loading
-                              ? const SizedBox(width: 20, height: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text('Sign In',
-                                  style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                    ],
+                  SizedBox(
+                    height: 280,
+                    child: TabBarView(controller: _tab, children: [
+                      _loginForm(),
+                      _registerForm(),
+                    ]),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text('Default: admin / admin123',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+                ]),
+              ),
+            ]),
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _inputDec(String label, IconData icon) => InputDecoration(
-    labelText: label,
-    labelStyle: GoogleFonts.outfit(),
-    prefixIcon: Icon(icon, color: const Color(0xFF16a34a)),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2),
+  Widget _loginForm() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(children: [
+      _field(_loginUser, 'Username', Icons.person_outline),
+      const SizedBox(height: 12),
+      _passField(_loginPass, 'Password', _obscure1, () => setState(() => _obscure1 = !_obscure1)),
+      const SizedBox(height: 20),
+      _submitBtn('Sign In', _login),
+      const SizedBox(height: 8),
+      Text('Default: admin / admin123', style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey)),
+    ]),
+  );
+
+  Widget _registerForm() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(children: [
+      _field(_regUser, 'Username', Icons.person_outline),
+      const SizedBox(height: 10),
+      _passField(_regPass, 'Password', _obscure2, () => setState(() => _obscure2 = !_obscure2)),
+      const SizedBox(height: 10),
+      _passField(_regConfirm, 'Confirm Password', _obscure3, () => setState(() => _obscure3 = !_obscure3)),
+      const SizedBox(height: 16),
+      _submitBtn('Create Account', _register),
+    ]),
+  );
+
+  Widget _field(TextEditingController ctrl, String label, IconData icon) =>
+      TextField(controller: ctrl,
+          decoration: InputDecoration(labelText: label, labelStyle: GoogleFonts.outfit(),
+              prefixIcon: Icon(icon, color: const Color(0xFF16a34a), size: 20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+          style: GoogleFonts.outfit());
+
+  Widget _passField(TextEditingController ctrl, String label, bool obscure, VoidCallback toggle) =>
+      TextField(controller: ctrl, obscureText: obscure,
+          decoration: InputDecoration(labelText: label, labelStyle: GoogleFonts.outfit(),
+              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF16a34a), size: 20),
+              suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, size: 18),
+                  onPressed: toggle),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF16a34a), width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+          style: GoogleFonts.outfit(),
+          onSubmitted: (_) => label == 'Password' ? _login() : null);
+
+  Widget _submitBtn(String label, VoidCallback onTap) => SizedBox(
+    width: double.infinity, height: 44,
+    child: ElevatedButton(
+      onPressed: _loading ? null : onTap,
+      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+      child: _loading ? const SizedBox(width: 18, height: 18,
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
     ),
   );
 }
