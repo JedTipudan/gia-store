@@ -273,6 +273,11 @@ class _PaymentSheetState extends State<_PaymentSheet> {
   bool _uploading = false;
   bool _submitting = false;
 
+  // Cash = no reference/photo needed, online = required
+  bool get _isCash => _selectedMethodData?['icon'] == 'cash' ||
+      (_selectedMethod?.toLowerCase().contains('cash') ?? false);
+  bool get _needsProof => !_isCash;
+
   @override
   void initState() {
     super.initState();
@@ -334,14 +339,15 @@ class _PaymentSheetState extends State<_PaymentSheet> {
     if (_selectedMethod == null) {
       showSnack(context, 'Please select a payment method', error: true); return;
     }
-    if (_uploadedUrl.isEmpty) {
+    // Only require proof for non-cash payments
+    if (_needsProof && _uploadedUrl.isEmpty) {
       showSnack(context, 'Please upload your payment receipt photo', error: true); return;
     }
     setState(() => _submitting = true);
     final res = await ApiService.patch2('/orders/${widget.order['id']}/pay', {
       'paymentMethod': _selectedMethod,
-      'referenceNumber': _refCtrl.text.trim(),
-      'proofImageUrl': _uploadedUrl,
+      'referenceNumber': _needsProof ? _refCtrl.text.trim() : '',
+      'proofImageUrl': _needsProof ? _uploadedUrl : '',
     });
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -471,75 +477,94 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                       style: GoogleFonts.outfit(fontSize: 12, color: Colors.blue[300]))),
                 ])),
 
-            // Reference number
-            TextField(
-              controller: _refCtrl,
-              style: GoogleFonts.outfit(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Reference / Transaction Number (optional)',
-                labelStyle: GoogleFonts.outfit(color: Colors.grey[500]),
-                filled: true, fillColor: const Color(0xFF0F2414),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF4ade80), width: 2)),
+            // Reference number - only for online payments
+            if (_needsProof) ...[
+              TextField(
+                controller: _refCtrl,
+                style: GoogleFonts.outfit(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Reference / Transaction Number',
+                  labelStyle: GoogleFonts.outfit(color: Colors.grey[500]),
+                  filled: true, fillColor: const Color(0xFF0F2414),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF4ade80), width: 2)),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 14),
 
-            // Proof upload
-            Align(alignment: Alignment.centerLeft,
-              child: Text('Upload Payment Receipt *',
-                  style: GoogleFonts.outfit(fontSize: 13,
-                      fontWeight: FontWeight.w600, color: Colors.grey[400]))),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _uploading ? null : _pickProof,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: double.infinity, height: 160,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F2414),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: _uploadedUrl.isNotEmpty
-                          ? const Color(0xFF4ade80) : Colors.grey[700]!,
-                      width: _uploadedUrl.isNotEmpty ? 2 : 1)),
-                clipBehavior: Clip.antiAlias,
-                child: _uploading
-                    ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const CircularProgressIndicator(color: Color(0xFF4ade80)),
-                        const SizedBox(height: 10),
-                        Text('Uploading...', style: GoogleFonts.outfit(color: Colors.grey)),
-                      ])
-                    : _proofImage != null
-                        ? Stack(fit: StackFit.expand, children: [
-                            Image.file(_proofImage!, fit: BoxFit.cover),
-                            if (_uploadedUrl.isNotEmpty)
-                              Positioned(top: 8, right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFF16a34a),
-                                      borderRadius: BorderRadius.circular(9999)),
-                                  child: Text('✓ Uploaded', style: GoogleFonts.outfit(
-                                      fontSize: 10, color: Colors.white,
-                                      fontWeight: FontWeight.w600)))),
-                          ])
-                        : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.upload_file_rounded,
-                                size: 44, color: Color(0xFF4ade80)),
-                            const SizedBox(height: 8),
-                            Text('Tap to upload receipt photo',
-                                style: GoogleFonts.outfit(color: Colors.grey[400])),
-                            Text('Gallery or Camera',
-                                style: GoogleFonts.outfit(
-                                    fontSize: 11, color: Colors.grey[600])),
-                          ]),
+              // Proof upload
+              Align(alignment: Alignment.centerLeft,
+                child: Text('Upload Payment Receipt *',
+                    style: GoogleFonts.outfit(fontSize: 13,
+                        fontWeight: FontWeight.w600, color: Colors.grey[400]))),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _uploading ? null : _pickProof,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity, height: 160,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F2414),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: _uploadedUrl.isNotEmpty
+                            ? const Color(0xFF4ade80) : Colors.grey[700]!,
+                        width: _uploadedUrl.isNotEmpty ? 2 : 1)),
+                  clipBehavior: Clip.antiAlias,
+                  child: _uploading
+                      ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const CircularProgressIndicator(color: Color(0xFF4ade80)),
+                          const SizedBox(height: 10),
+                          Text('Uploading...', style: GoogleFonts.outfit(color: Colors.grey)),
+                        ])
+                      : _proofImage != null
+                          ? Stack(fit: StackFit.expand, children: [
+                              Image.file(_proofImage!, fit: BoxFit.cover),
+                              if (_uploadedUrl.isNotEmpty)
+                                Positioned(top: 8, right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                        color: const Color(0xFF16a34a),
+                                        borderRadius: BorderRadius.circular(9999)),
+                                    child: Text('✓ Uploaded', style: GoogleFonts.outfit(
+                                        fontSize: 10, color: Colors.white,
+                                        fontWeight: FontWeight.w600)))),
+                            ])
+                          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.upload_file_rounded,
+                                  size: 44, color: Color(0xFF4ade80)),
+                              const SizedBox(height: 8),
+                              Text('Tap to upload receipt photo',
+                                  style: GoogleFonts.outfit(color: Colors.grey[400])),
+                              Text('Gallery or Camera',
+                                  style: GoogleFonts.outfit(
+                                      fontSize: 11, color: Colors.grey[600])),
+                            ]),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+            ] else ...[
+              // Cash - just a note
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16a34a).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF16a34a).withOpacity(0.2))),
+                child: Row(children: [
+                  const Icon(Icons.info_outline, color: Color(0xFF4ade80), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(
+                    'Pay cash directly to the store. Tap Submit to confirm your order.',
+                    style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey[300]))),
+                ]),
+              ),
+            ],
 
             // Submit button
             SizedBox(width: double.infinity, height: 52,

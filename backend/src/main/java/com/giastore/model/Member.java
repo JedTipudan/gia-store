@@ -27,7 +27,7 @@ public class Member {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private LocalDate startDate;
+    private LocalDate startDate = LocalDate.now();
 
     @Column(nullable = false)
     private String status = "PENDING"; // PENDING, ACTIVE, REJECTED, COMPLETED, DROPPED
