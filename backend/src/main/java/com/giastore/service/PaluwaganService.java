@@ -60,12 +60,19 @@ public class PaluwaganService {
     }
 
     public Member applyMember(Member member) {
+        // Fetch the full package entity from DB — JPA needs the full object not just an ID shell
+        PaluwaganPackage pkg = packageRepo.findById(member.getPaluwaganPackage().getId())
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+        member.setPaluwaganPackage(pkg);
         member.setStatus("PENDING");
         member.setAppliedAt(LocalDateTime.now());
         return memberRepo.save(member);
     }
 
     public Member saveMember(Member member) {
+        PaluwaganPackage pkg = packageRepo.findById(member.getPaluwaganPackage().getId())
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+        member.setPaluwaganPackage(pkg);
         member.setStatus("ACTIVE");
         member.setApprovedAt(LocalDateTime.now());
         if (member.getStartDate() == null) member.setStartDate(LocalDate.now());

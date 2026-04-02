@@ -15,6 +15,7 @@ class CustomerDashboard extends StatefulWidget {
 class _CustomerDashboardState extends State<CustomerDashboard> {
   List _members = [];
   List _payments = [];
+  List _orders = [];
   bool _loading = true;
 
   @override
@@ -26,9 +27,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     try {
       final mRes = await ApiService.get('/paluwagan/members/user/${widget.userId}');
       final pRes = await ApiService.get('/paluwagan/payments/user/${widget.userId}');
+      final oRes = await ApiService.get('/orders/user/${widget.userId}');
       setState(() {
         _members = mRes.statusCode == 200 ? jsonDecode(mRes.body) : [];
         _payments = pRes.statusCode == 200 ? jsonDecode(pRes.body) : [];
+        _orders = oRes.statusCode == 200 ? jsonDecode(oRes.body) : [];
         _loading = false;
       });
     } catch (_) { setState(() => _loading = false); }
@@ -40,13 +43,26 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     final activeEnrollments = _members.where((m) => m['status'] == 'ACTIVE').toList();
     final pendingEnrollments = _members.where((m) => m['status'] == 'PENDING').toList();
+
+    // Paluwagan payment stats
     final totalPayments = _payments.length;
     final paidPayments = _payments.where((p) => p['paid'] == true).length;
-    final pendingProofs = _payments.where((p) => p['approvalStatus'] == 'SUBMITTED').length;
-    final unpaidPayments = _payments.where((p) => p['paid'] == false && p['approvalStatus'] != 'SUBMITTED').length;
+    final submittedPayments = _payments.where((p) => p['approvalStatus'] == 'SUBMITTED').length;
+    final unpaidPayments = _payments.where((p) =>
+        p['paid'] == false && p['approvalStatus'] == 'PENDING').length;
     final totalPaid = _payments.where((p) => p['paid'] == true)
-        .fold(0.0, (sum, p) => sum + (p['amount'] ?? 0));
+        .fold(0.0, (sum, p) => sum + ((p['amount'] ?? 0) as num).toDouble());
     final progress = totalPayments > 0 ? paidPayments / totalPayments : 0.0;
+
+    // Food order stats
+    final pendingOrders = _orders.where((o) => o['status'] == 'PENDING').length;
+    final paidOrders = _orders.where((o) => o['status'] == 'PAID').length;
+    final confirmedOrders = _orders.where((o) => o['status'] == 'CONFIRMED').length;
+    final totalOrderSpend = _orders.where((o) => o['status'] == 'CONFIRMED')
+        .fold(0.0, (sum, o) => sum + ((o['totalPrice'] ?? 0) as num).toDouble());
+
+    // Total pending actions
+    final totalPending = pendingOrders + paidOrders + submittedPayments;
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -54,12 +70,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Welcome
+
+          // Welcome card
           Container(
             width: double.infinity, padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [Color(0xFF14532d), Color(0xFF166534)],
+                  colors: [Color(0xFF0A2E14), Color(0xFF16a34a)],
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(16)),
             child: Row(children: [
@@ -72,7 +89,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 Text(activeEnrollments.isEmpty
                     ? 'No active paluwagan yet'
                     : '${activeEnrollments.length} active enrollment${activeEnrollments.length > 1 ? 's' : ''}',
-                    style: GoogleFonts.outfit(fontSize: 13, color: Colors.white.withOpacity(0.7))),
+                    style: GoogleFonts.outfit(
+                        fontSize: 13, color: Colors.white.withOpacity(0.7))),
               ])),
               Container(width: 56, height: 56,
                 decoration: BoxDecoration(color: Colors.white.withOpacity(0.15),
@@ -83,75 +101,139 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           ),
           const SizedBox(height: 16),
 
-          // Stats row
-          Row(children: [
-            Expanded(child: _statCard('Total Paid', formatPeso(totalPaid),
-                Icons.payments_rounded, const Color(0xFF4ade80))),
-            const SizedBox(width: 12),
-            Expanded(child: _statCard('Payments', '$paidPayments/$totalPayments',
-                Icons.receipt_long_rounded, Colors.blue[300]!)),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _statCard('Pending Review', '$pendingProofs',
-                Icons.hourglass_empty_rounded, Colors.orange)),
-            const SizedBox(width: 12),
-            Expanded(child: _statCard('Unpaid', '$unpaidPayments',
-                Icons.warning_amber_rounded, Colors.red[300]!)),
-          ]),
-          const SizedBox(height: 16),
+          // Pending alert
+          if (totalPending > 0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withOpacity(0.3))),
+              child: Row(children: [
+                const Icon(Icons.notifications_active_rounded,
+                    color: Colors.orange, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('$totalPending pending action${totalPending > 1 ? 's' : ''}',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
+                          color: Colors.orange)),
+                  Text([
+                    if (pendingOrders > 0) '$pendingOrders order${pendingOrders > 1 ? 's' : ''} waiting',
+                    if (paidOrders > 0) '$paidOrders payment${paidOrders > 1 ? 's' : ''} submitted',
+                    if (submittedPayments > 0) '$submittedPayments paluwagan payment${submittedPayments > 1 ? 's' : ''} submitted',
+                  ].join(' • '),
+                      style: GoogleFonts.outfit(fontSize: 12,
+                          color: Colors.orange.withOpacity(0.8))),
+                ])),
+              ]),
+            ),
 
-          // Payment progress
+          // Paluwagan stats
+          _sectionLabel('Paluwagan Payments'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: _statCard('Total Paid',
+                formatPeso(totalPaid), Icons.payments_rounded,
+                const Color(0xFF4ade80))),
+            const SizedBox(width: 12),
+            Expanded(child: _statCard('Progress',
+                '$paidPayments/$totalPayments', Icons.receipt_long_rounded,
+                Colors.blue[300]!)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _statCard('Submitted',
+                '$submittedPayments', Icons.hourglass_empty_rounded,
+                Colors.orange)),
+            const SizedBox(width: 12),
+            Expanded(child: _statCard('Unpaid',
+                '$unpaidPayments', Icons.warning_amber_rounded,
+                Colors.red[300]!)),
+          ]),
+
+          // Payment progress bar
           if (totalPayments > 0) ...[
-            Text('Payment Progress', style: GoogleFonts.outfit(
-                fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[400])),
-            const SizedBox(height: 8),
-            Container(padding: const EdgeInsets.all(16),
+            const SizedBox(height: 14),
+            Container(padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: const Color(0xFF1A2E1E),
                   borderRadius: BorderRadius.circular(12)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('$paidPayments of $totalPayments paid',
-                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w500)),
+                      style: GoogleFonts.outfit(color: Colors.white,
+                          fontWeight: FontWeight.w500, fontSize: 13)),
                   Text('${(progress * 100).round()}%',
                       style: GoogleFonts.outfit(color: const Color(0xFF4ade80),
                           fontWeight: FontWeight.bold)),
                 ]),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 ClipRRect(borderRadius: BorderRadius.circular(9999),
                   child: LinearProgressIndicator(
-                    value: progress, minHeight: 10,
+                    value: progress, minHeight: 8,
                     backgroundColor: Colors.grey[800],
                     valueColor: const AlwaysStoppedAnimation(Color(0xFF16a34a)))),
               ])),
-            const SizedBox(height: 16),
           ],
+          const SizedBox(height: 16),
+
+          // Food order stats
+          _sectionLabel('Food Orders'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: _statCard('Confirmed',
+                '$confirmedOrders', Icons.check_circle_rounded,
+                const Color(0xFF4ade80))),
+            const SizedBox(width: 12),
+            Expanded(child: _statCard('Pending',
+                '${pendingOrders + paidOrders}',
+                Icons.pending_rounded, Colors.orange)),
+          ]),
+          if (totalOrderSpend > 0) ...[
+            const SizedBox(height: 10),
+            Container(padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: const Color(0xFF1A2E1E),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Row(children: [
+                const Icon(Icons.fastfood_rounded,
+                    color: Color(0xFF4ade80), size: 20),
+                const SizedBox(width: 10),
+                Text('Total food spend: ', style: GoogleFonts.outfit(
+                    color: Colors.grey[400], fontSize: 13)),
+                Text(formatPeso(totalOrderSpend), style: GoogleFonts.outfit(
+                    color: const Color(0xFF4ade80), fontWeight: FontWeight.bold,
+                    fontSize: 15)),
+              ])),
+          ],
+          const SizedBox(height: 16),
 
           // Active enrollments
           if (activeEnrollments.isNotEmpty) ...[
-            Text('Active Enrollments', style: GoogleFonts.outfit(
-                fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[400])),
+            _sectionLabel('Active Enrollments'),
             const SizedBox(height: 8),
             ...activeEnrollments.map((m) {
-              final memberPayments = _payments.where(
-                  (p) => p['member']?['id'] == m['id']).toList();
+              final memberPayments = _payments
+                  .where((p) => p['member']?['id'] == m['id']).toList();
               final memberPaid = memberPayments.where((p) => p['paid'] == true).length;
               final memberTotal = memberPayments.length;
-              final nextUnpaid = memberPayments.where(
-                  (p) => p['paid'] == false && p['approvalStatus'] != 'SUBMITTED').toList();
+              final nextUnpaid = memberPayments.where((p) =>
+                  p['paid'] == false && p['approvalStatus'] == 'PENDING').toList();
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: const Color(0xFF1A2E1E),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF16a34a).withOpacity(0.3))),
+                    border: Border.all(
+                        color: const Color(0xFF16a34a).withOpacity(0.3))),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Text(m['paluwaganPackage']?['name'] ?? '',
                         style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
                             color: Colors.white, fontSize: 15)),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: const Color(0xFF16a34a).withOpacity(0.2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFF16a34a).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(9999)),
                       child: Text('ACTIVE', style: GoogleFonts.outfit(
                           fontSize: 10, fontWeight: FontWeight.w600,
@@ -179,8 +261,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           // Pending applications
           if (pendingEnrollments.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('Pending Applications', style: GoogleFonts.outfit(
-                fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[400])),
+            _sectionLabel('Pending Applications'),
             const SizedBox(height: 8),
             ...pendingEnrollments.map((m) => Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -189,35 +270,41 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.orange.withOpacity(0.3))),
               child: Row(children: [
-                const Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 20),
+                const Icon(Icons.hourglass_empty_rounded,
+                    color: Colors.orange, size: 20),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(m['paluwaganPackage']?['name'] ?? '',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600,
+                          color: Colors.white)),
                   Text('Waiting for admin approval',
                       style: GoogleFonts.outfit(fontSize: 12, color: Colors.orange)),
                 ])),
-              ]),
-            )),
+              ])),
+            ),
           ],
 
-          if (_members.isEmpty)
-            Container(padding: const EdgeInsets.all(20),
+          if (_members.isEmpty && _orders.isEmpty)
+            Container(padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(color: const Color(0xFF1A2E1E),
                   borderRadius: BorderRadius.circular(12)),
               child: Column(children: [
-                const Icon(Icons.groups_outlined, size: 48, color: Colors.grey),
+                const Icon(Icons.storefront_rounded, size: 48, color: Colors.grey),
                 const SizedBox(height: 8),
-                Text('No paluwagan enrollment yet',
-                    style: GoogleFonts.outfit(color: Colors.grey[400])),
+                Text('Nothing here yet', style: GoogleFonts.outfit(
+                    color: Colors.grey[400])),
                 const SizedBox(height: 4),
-                Text('Go to Packages to apply',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600])),
+                Text('Browse Food Menu or Packages to get started',
+                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
+                    textAlign: TextAlign.center),
               ])),
         ]),
       ),
     );
   }
+
+  Widget _sectionLabel(String label) => Text(label, style: GoogleFonts.outfit(
+      fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[400]));
 
   Widget _statCard(String label, String value, IconData icon, Color color) =>
       Container(padding: const EdgeInsets.all(14),
