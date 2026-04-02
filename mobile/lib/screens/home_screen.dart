@@ -9,6 +9,7 @@ import 'dashboard_screen.dart';
 import 'food_screen.dart';
 import 'packages_screen.dart';
 import 'admin_paluwagan_screen.dart';
+import 'admin_orders_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,15 +27,17 @@ class _HomeScreenState extends State<HomeScreen> {
     FoodScreen(),
     PackagesScreen(),
     AdminPaluwaganScreen(),
+    AdminOrdersScreen(),
   ];
 
-  final _titles = ['Dashboard', 'Food Items', 'Packages', 'Paluwagan'];
+  final _titles = ['Dashboard', 'Food Items', 'Packages', 'Paluwagan', 'Orders'];
 
   final _navItems = [
     {'icon': Icons.dashboard_outlined, 'selectedIcon': Icons.dashboard_rounded, 'label': 'Dashboard'},
     {'icon': Icons.fastfood_outlined, 'selectedIcon': Icons.fastfood_rounded, 'label': 'Food Items'},
     {'icon': Icons.inventory_2_outlined, 'selectedIcon': Icons.inventory_2_rounded, 'label': 'Packages'},
     {'icon': Icons.groups_outlined, 'selectedIcon': Icons.groups_rounded, 'label': 'Paluwagan'},
+    {'icon': Icons.receipt_long_outlined, 'selectedIcon': Icons.receipt_long_rounded, 'label': 'Orders'},
   ];
 
   @override
